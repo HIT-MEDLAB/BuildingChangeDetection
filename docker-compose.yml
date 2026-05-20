@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bcd-postgres
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-bcd_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bcd_pass}
+      POSTGRES_DB: ${DB_NAME:-building_change_detection}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bcd_user}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  adminer:
+    image: adminer
+    container_name: bcd-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

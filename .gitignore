@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+
+# ML model weights (can be hundreds of MB)
+*.pth
+*.pt
+*.onnx
+*.h5
+*.pkl
+*.joblib
+weights/
+
+# Uploaded files (generated at runtime)
+uploads/
+/tmp/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Coverage and test output
+coverage/
+.nyc_output/
+htmlcov/
+.pytest_cache/

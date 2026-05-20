@@ -1,0 +1,13 @@
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# ML / Image processing (needed when integrating the real model)
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# TODO: Add any Tiny-CD-specific dependencies here
+# The model repository may have its own requirements — check it when you clone it
