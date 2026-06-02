@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const authenticate = require('../middleware/authenticate');
 
-// TODO: Add authentication middleware to all routes below
-// const authenticate = require('../middleware/authenticate');
-// router.use(authenticate);
+ router.use(authenticate);
+
 
 // POST /api/inspections/upload
 // TODO: Implement image upload
