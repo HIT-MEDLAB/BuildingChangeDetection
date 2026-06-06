@@ -41,15 +41,15 @@ const upload = multer({
 
 // POST /api/inspections/upload
 router.post('/upload', upload.fields([
-  { name: 'image_before', maxCount: 1 },
-  { name: 'image_after', maxCount: 1 }
+  { name: 'imageBefore', maxCount: 1 },
+  { name: 'imageAfter', maxCount: 1 }
 ]), async (req, res) => {
-  if (!req.files?.image_before || !req.files?.image_after) {
-    return res.status(400).json({ error: 'Both image_before and image_after are required' });
+  if (!req.files?.imageBefore || !req.files?.imageAfter) {
+    return res.status(400).json({ error: 'Both images are required' });
   }
 
-  const imageBeforePath = req.files.image_before[0].path;
-  const imageAfterPath = req.files.image_after[0].path;
+  const imageBeforePath = req.files.imageBefore[0].path;
+  const imageAfterPath = req.files.imageAfter[0].path;
 
   try{
     const result = await pool.query(
@@ -88,10 +88,9 @@ router.post('/upload', upload.fields([
     
 
     res.status(201).json({
-    message: 'Images uploaded successfully',
-    inspection_id: inspectionId,
+    inspectionId: inspectionId,
     status: 'completed',
-    ml_result: mlResult
+    message: 'Images uploaded. Processing will begin shortly.'
   });
 
   }catch (err){
@@ -131,10 +130,20 @@ router.get('/:id', async (req, res) => {
       results = resultsQuery.rows[0] || null;
     }
 
-    res.status(200).json({
-      inspection,
-      results
-    });
+  res.status(200).json({
+    id: inspection.id,
+    status: inspection.status,
+    createdAt: inspection.created_at,
+    notes: inspection.notes,
+    images: {
+      before: inspection.image_before_path,
+      after: inspection.image_after_path
+    },
+    results: results ? {
+      changesDetected: results.changes_detected,
+      boundingBoxes: results.result_data.bounding_boxes
+  } : null
+});
 
   } catch (err) {
     console.error('Get inspection error:', err);
