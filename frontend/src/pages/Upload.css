@@ -1,0 +1,170 @@
+.upload-page {
+    padding: 35px 55px;
+    background: #f8fafc;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    color: #0f172a;
+  }
+  
+  .upload-page h1 {
+    text-align: center;
+    color: #0f172a;
+    font-size: 36px;
+    margin-bottom: 10px;
+  }
+  
+  .upload-subtitle {
+    text-align: center;
+    color: #475569;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 35px;
+  }
+  
+  .upload-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .step {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  
+  .step.active {
+    background: #2563eb;
+    color: white;
+  }
+  
+  .line {
+    width: 180px;
+    height: 2px;
+    background: #e5e7eb;
+  }
+  
+  .step-labels {
+    display: flex;
+    justify-content: center;
+    gap: 155px;
+    color: #0f172a;
+    font-weight: bold;
+    margin-bottom: 35px;
+  }
+  
+  .upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  
+  .upload-grid h2,
+  .submit-title {
+    color: #0f172a;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  
+  .upload-box {
+    background: white;
+    border: 2px dashed #d1d5db;
+    border-radius: 14px;
+    padding: 28px;
+    min-height: 260px;
+    text-align: center;
+  }
+  
+  .upload-placeholder {
+    height: 230px;
+    border-radius: 14px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .upload-icon {
+    font-size: 54px;
+    color: #0f2742;
+    margin-bottom: 10px;
+  }
+  
+  .upload-placeholder p {
+    font-size: 17px;
+    font-weight: bold;
+    color: #0f172a;
+    margin: 6px 0;
+  }
+  
+  .upload-placeholder span {
+    color: #64748b;
+    margin: 8px 0;
+  }
+  
+  .upload-placeholder label {
+    background: #2563eb;
+    color: white;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .upload-placeholder input {
+    display: none;
+  }
+  
+  .upload-placeholder small {
+    margin-top: 18px;
+    color: #64748b;
+    font-weight: bold;
+  }
+  
+  .upload-box img {
+    width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+  
+  .upload-error {
+    color: #dc2626;
+    margin-top: 18px;
+    font-weight: bold;
+  }
+  
+  .submit-title {
+    margin-top: 30px;
+  }
+  
+  .upload-button {
+    width: 100%;
+    margin-top: 8px;
+    background: #06264a;
+    color: white;
+    border: none;
+    padding: 18px 28px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .upload-button:hover {
+    background: #041d38;
+  }
+  
+  .upload-note {
+    margin-top: 22px;
+    color: #64748b;
+    font-weight: bold;
+  }

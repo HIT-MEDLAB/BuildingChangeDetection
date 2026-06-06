@@ -1,30 +1,45 @@
-import { Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import LoginPage from './pages/LoginPage';
-import UploadPage from './pages/UploadPage';
-import ProcessingPage from './pages/ProcessingPage';
-import ResultsPage from './pages/ResultsPage';
-import HistoryPage from './pages/HistoryPage';
-import HelpPage from './pages/HelpPage';
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import "./App.css";
+import Login from "./pages/Login";
+import Upload from "./pages/Upload";
+import Processing from "./pages/Processing";
+import Results from "./pages/Results";
+import History from "./pages/History";
+import Help from "./pages/Help";
 
-// TODO: Add authentication state management
-// TODO: Decide if Login page should show the sidebar or not
+import Sidebar from "./components/Sidebar";
 
-function App() {
+function Layout() {
+  const location = useLocation();
+
+  const hideSidebar =
+    location.pathname === "/" ||
+    location.pathname === "/login";
+
   return (
     <div className="app-layout">
-      <Sidebar />
-      <main className="main-content">
+      {!hideSidebar && <Sidebar />}
+
+      <main className="app-main">
         <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/upload" element={<UploadPage />} />
-          <Route path="/processing" element={<ProcessingPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/help" element={<HelpPage />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/upload" element={<Upload />} />
+          <Route path="/processing" element={<Processing />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/help" element={<Help />} />
         </Routes>
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
   );
 }
 
