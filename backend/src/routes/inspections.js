@@ -29,7 +29,7 @@ const fileFilter = (req, file, cb) => {
   if (allowed.includes(file.mimetype)) {
     cb(null, true); 
   } else{
-    cb(new Error ('Invalid file type. Only JPEG, PNG and TIFT are allowed.'), false);
+    cb(new Error('Invalid file type. Only JPEG, PNG and TIFF are allowed.'), false);
   }
 };
 
@@ -99,7 +99,43 @@ router.post('/upload', upload.fields([
   }
 });
 
+// GET /api/inspections
+router.get('/', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
+  try {
+    const inspectionsResult = await pool.query(
+      `SELECT id, status, created_at, notes
+       FROM inspections
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [req.user.userId, limit, offset]
+    );
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM inspections WHERE user_id = $1`,
+      [req.user.userId]
+    );
+
+    const total = parseInt(countResult.rows[0].count);
+
+    res.status(200).json({
+      inspections: inspectionsResult.rows,
+      pagination: {
+        page,
+        limit,
+        total
+      }
+    });
+
+  } catch (err) {
+    console.error('Get inspections error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // GET /api/inspections/:id
 router.get('/:id', async (req, res) => {
@@ -151,19 +187,5 @@ router.get('/:id', async (req, res) => {
   }
 });
     
-// GET /api/inspections/history
-router.get('/', (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    hint: 'Implement inspection history with pagination — see docs/api-spec.md',
-  });
-});
-
-// TODO: Implement paginated inspection history
-// Steps:
-//   1. Parse query params (page, limit, filters)
-//   2. Query the database with pagination (LIMIT/OFFSET)
-//   3. Return the list with pagination metadata
-
 
 module.exports = router;

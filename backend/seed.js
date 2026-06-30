@@ -1,8 +1,5 @@
 require('dotenv').config();
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_PORT:', process.env.DB_PORT);
+
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
@@ -25,7 +22,7 @@ async function seedUser() {
         );
         console.log ('Test user created: email: yair@medlab.hit.ac.il, password: password123');
     } catch (err){
-        console.error(' Error seeding user:', err);
+        console.error('Error seeding user:', err);
     } finally{
         pool.end();
     }

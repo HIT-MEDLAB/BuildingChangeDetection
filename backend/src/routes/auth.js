@@ -29,11 +29,11 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials '});
+      return res.status(401).json({ error: 'Invalid credentials'});
     }
 
     //   4. Generate a JWT token (use jsonwebtoken package)
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret_for_development';
+    const jwtSecret = process.env.JWT_SECRET;
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       jwtSecret,
