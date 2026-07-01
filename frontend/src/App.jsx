@@ -1,30 +1,84 @@
-import { Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import LoginPage from './pages/LoginPage';
-import UploadPage from './pages/UploadPage';
-import ProcessingPage from './pages/ProcessingPage';
-import ResultsPage from './pages/ResultsPage';
-import HistoryPage from './pages/HistoryPage';
-import HelpPage from './pages/HelpPage';
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import "./App.css";
 
-// TODO: Add authentication state management
-// TODO: Decide if Login page should show the sidebar or not
+import Login from "./pages/Login";
+import Upload from "./pages/Upload";
+import Processing from "./pages/Processing";
+import Results from "./pages/Results";
+import History from "./pages/History";
+import Help from "./pages/Help";
 
-function App() {
+import Sidebar from "./components/Sidebar";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+function Layout() {
+  const location = useLocation();
+
+  // Hide the sidebar on the Login page
+  const hideSidebar =
+    location.pathname === "/" ||
+    location.pathname === "/login";
+
   return (
     <div className="app-layout">
-      <Sidebar />
-      <main className="main-content">
+      {!hideSidebar && <Sidebar />}
+
+      <main className="app-main">
         <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/upload" element={<UploadPage />} />
-          <Route path="/processing" element={<ProcessingPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/help" element={<HelpPage />} />
+
+          {/* Public routes */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/help" element={<Help />} />
+
+          {/* Protected routes */}
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <Upload />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/processing/:id"
+            element={
+              <ProtectedRoute>
+                <Processing />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute>
+                <Results />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <History />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </div>
+  );
+}
+
+// Main application component
+function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
   );
 }
 
