@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 import "./Upload.css";
 
 function Upload() {
@@ -8,9 +9,11 @@ function Upload() {
   const [beforePreview, setBeforePreview] = useState("");
   const [afterPreview, setAfterPreview] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
+  // Validates the selected file and creates a local preview for the user
   const handleFile = (file, type) => {
     if (!file) return;
 
@@ -22,14 +25,12 @@ function Upload() {
     const reader = new FileReader();
 
     reader.onloadend = () => {
-      const base64Image = reader.result;
-
       if (type === "before") {
         setBeforeImage(file);
-        setBeforePreview(base64Image);
+        setBeforePreview(reader.result);
       } else {
         setAfterImage(file);
-        setAfterPreview(base64Image);
+        setAfterPreview(reader.result);
       }
 
       setError("");
@@ -38,47 +39,54 @@ function Upload() {
     reader.readAsDataURL(file);
   };
 
+  // Handles drag and drop upload
   const handleDrop = (e, type) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    handleFile(file, type);
+    handleFile(e.dataTransfer.files[0], type);
   };
 
-  const handleSubmit = () => {
+  // Sends both images to the backend as multipart/form-data
+  const handleSubmit = async () => {
     if (!beforeImage || !afterImage) {
       setError("Please upload both before and after images");
       return;
     }
 
-    const newInspection = {
-      id: Date.now(),
-      date: new Date().toLocaleString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      beforeImage: beforePreview,
-      afterImage: afterPreview,
-      result: "Change Detected",
-    };
+    setError("");
+    setLoading(true);
 
-    const history =
-      JSON.parse(localStorage.getItem("inspectionHistory")) || [];
+    try {
+      const formData = new FormData();
 
-    localStorage.setItem(
-      "inspectionHistory",
-      JSON.stringify([newInspection, ...history])
-    );
+      // Field names must match Yair's multer configuration in the backend
+      formData.append("imageBefore", beforeImage);
+      formData.append("imageAfter", afterImage);
 
-    navigate("/processing", {
-      state: {
-        beforePreview,
-        afterPreview,
-      },
-    });
+      const response = await api.post("/api/inspections/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      // Backend returns inspectionId after creating the inspection record
+      const inspectionId = response.data.inspectionId || response.data.id;
+
+      navigate(`/processing/${inspectionId}`, {
+        state: {
+          inspectionId,
+          beforePreview,
+          afterPreview,
+        },
+      });
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Upload failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,6 +97,7 @@ function Upload() {
         Upload before and after images of the same location to detect changes.
       </p>
 
+      {/* Visual progress steps for the inspection flow */}
       <div className="upload-steps">
         <div className="step active">1</div>
         <div className="line"></div>
@@ -173,12 +182,18 @@ function Upload() {
 
       {error && <p className="upload-error">{error}</p>}
 
-      <button type="button" className="upload-button" onClick={handleSubmit}>
-        Submit Images
+      <button
+        type="button"
+        className="upload-button"
+        onClick={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? "Uploading..." : "Submit Images"}
       </button>
 
       <p className="upload-note">
-        ℹ Please upload images of the same location from similar angles for best results.
+        ℹ Please upload images of the same location from similar angles for best
+        results.
       </p>
     </div>
   );

@@ -6,18 +6,22 @@ import "./Results.css";
 function Results() {
   const location = useLocation();
 
+  // Images and result data are received from the previous page
   const beforeImage = location.state?.beforePreview;
   const afterImage = location.state?.afterPreview;
+  const result = location.state?.result || "Change Detected";
 
   const [savedMessage, setSavedMessage] = useState(false);
 
-  const detectedChanges = [
+  // Uses backend detection data when available, otherwise displays demo boxes
+  const detectedChanges = location.state?.detectedChanges || [
     { x: 28, y: 12, width: 16, height: 28 },
     { x: 68, y: 18, width: 18, height: 26 },
     { x: 12, y: 58, width: 18, height: 24 },
     { x: 66, y: 62, width: 22, height: 25 },
   ];
 
+  // Prevents showing the results page without uploaded images
   if (!beforeImage || !afterImage) {
     return (
       <div className="results-page">
@@ -27,38 +31,8 @@ function Results() {
     );
   }
 
+  // Shows a short confirmation message after saving
   const handleSaveToHistory = () => {
-    const newInspection = {
-      id: Date.now(),
-      date: new Date().toLocaleString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      beforeImage,
-      afterImage,
-      result: "Change Detected",
-    };
-
-    const history =
-      JSON.parse(localStorage.getItem("inspectionHistory")) || [];
-
-    const alreadyExists = history.some(
-      (item) =>
-        item.beforeImage === beforeImage &&
-        item.afterImage === afterImage
-    );
-
-    if (!alreadyExists) {
-      localStorage.setItem(
-        "inspectionHistory",
-        JSON.stringify([newInspection, ...history])
-      );
-    }
-
     setSavedMessage(true);
 
     setTimeout(() => {
@@ -70,11 +44,12 @@ function Results() {
     <div className="results-page">
       <h1>Results Screen</h1>
 
+      {/* Result summary */}
       <div className="result-status">
         <FaCheckCircle />
 
         <div>
-          <h2>Change Detected</h2>
+          <h2>{result}</h2>
           <p>Differences were found between the images.</p>
         </div>
 
@@ -83,6 +58,7 @@ function Results() {
         </button>
       </div>
 
+      {/* Before and after image comparison */}
       <div className="images-grid">
         <div>
           <h3>Before Image (Old State)</h3>
@@ -95,6 +71,7 @@ function Results() {
           <div className="after-image-wrapper">
             <img className="result-image" src={afterImage} alt="After" />
 
+            {/* Draws red boxes over detected changes */}
             {detectedChanges.map((box, index) => (
               <div
                 key={index}

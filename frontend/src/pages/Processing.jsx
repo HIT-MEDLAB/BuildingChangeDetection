@@ -1,46 +1,53 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FaInfoCircle } from "react-icons/fa";
+import api from "../api";
 import "./Processing.css";
 
 function Processing() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
+
+  // Images and inspectionId received from the Upload page
   const images = location.state;
 
-  const [progress, setProgress] = useState(0);
-
-  const steps = [
-    "Uploading images...",
-    "Validating image format...",
-    "Comparing before and after images...",
-    "Detecting suspected changes...",
-    "Preparing results..."
-  ];
-
-  const currentStep = Math.min(Math.floor(progress / 20), steps.length - 1);
+  const [progress, setProgress] = useState(20);
+  const [currentText, setCurrentText] = useState("Uploading images...");
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
+    // Polling: ask the backend for the inspection status every 2 seconds
+    const interval = setInterval(async () => {
+      try {
+        const response = await api.get(`/api/inspections/${id}`);
+        const inspection = response.data;
+
+        if (inspection.status === "completed") {
           clearInterval(interval);
+          setProgress(100);
+          setCurrentText("Preparing results...");
 
-          setTimeout(() => {
-            navigate("/results", {
-              state: images,
-            });
-          }, 700);
-
-          return 100;
+          navigate("/results", {
+            state: {
+              ...images,
+              result: inspection.results?.changesDetected
+                ? "Change Detected"
+                : "No Change Detected",
+              detectedChanges: inspection.results?.boundingBoxes || [],
+            },
+          });
+        } else {
+          setProgress((prev) => Math.min(prev + 20, 90));
+          setCurrentText("Detecting suspected changes...");
         }
-
-        return prev + 5;
-      });
-    }, 250);
+      } catch (err) {
+        clearInterval(interval);
+        setCurrentText("Processing failed. Please try again.");
+      }
+    }, 2000);
 
     return () => clearInterval(interval);
-  }, [navigate, images]);
+  }, [id, navigate, images]);
 
   return (
     <div className="processing-page">
@@ -53,7 +60,7 @@ function Processing() {
         </div>
 
         <h2>Analyzing...</h2>
-        <p className="step-text">{steps[currentStep]}</p>
+        <p className="step-text">{currentText}</p>
 
         <div className="progress-bar">
           <div style={{ width: `${progress}%` }}></div>

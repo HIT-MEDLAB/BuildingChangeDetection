@@ -1,53 +1,64 @@
 import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaCity, FaEnvelope, FaLock } from "react-icons/fa";
+import { FaEnvelope, FaLock } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
+import api from "../api";
 import "./Login.css";
 
 function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
-  const handleLogin = (e) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Handle login request
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
-      setError("Please enter email and password");
+      setError("Please fill in all fields.");
       return;
     }
 
-    setError("");
     setLoading(true);
+    setError("");
 
-    setTimeout(() => {
-      login();
-      setLoading(false);
+    try {
+      const response = await api.post("/api/auth/login", {
+        email,
+        password,
+      });
+
+      login(response.data.token, response.data.user);
+
       navigate("/upload");
-    }, 1200);
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="icon-circle">
-          <FaCity className="city-icon" />
-        </div>
-
-        <h1>Municipal Illegal Construction</h1>
-        <h2>Detection System</h2>
+        <h1>Municipal Illegal Construction Detection System</h1>
 
         <p className="subtitle">
           AI-powered detection and inspection platform
         </p>
 
-        <form onSubmit={handleLogin}>
-          <div className="input-box">
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
             <FaEnvelope className="input-icon" />
+
             <input
               type="email"
               placeholder="Enter your email"
@@ -56,8 +67,9 @@ function Login() {
             />
           </div>
 
-          <div className="input-box">
+          <div className="input-group">
             <FaLock className="input-icon" />
+
             <input
               type="password"
               placeholder="Enter your password"
@@ -66,7 +78,11 @@ function Login() {
             />
           </div>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && (
+            <p className="error-message">
+              {error}
+            </p>
+          )}
 
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
