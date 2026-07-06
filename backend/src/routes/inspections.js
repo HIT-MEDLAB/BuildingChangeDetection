@@ -107,13 +107,16 @@ router.get('/', async (req, res) => {
 
   try {
     const inspectionsResult = await pool.query(
-      `SELECT id, status, created_at, notes
-       FROM inspections
-       WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
+      `SELECT i.id, i.status, i.created_at, i.notes,
+          i.image_before_path, i.image_after_path,
+          r.changes_detected
+      FROM inspections i
+      LEFT JOIN inspection_results r ON r.inspection_id = i.id
+      WHERE i.user_id = $1
+      ORDER BY i.created_at DESC
+      LIMIT $2 OFFSET $3`,
       [req.user.userId, limit, offset]
-    );
+  );
 
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM inspections WHERE user_id = $1`,
