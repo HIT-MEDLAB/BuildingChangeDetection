@@ -9,6 +9,12 @@ const FormData = require('form-data');
 const fs = require('fs');
 const fetch = require('node-fetch');
 
+//Ensure uploads directory exists on startup
+const uploadsDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 
 router.use(authenticate);
 

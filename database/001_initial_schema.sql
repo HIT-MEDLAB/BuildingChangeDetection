@@ -35,5 +35,5 @@ CREATE TABLE IF NOT EXISTS inspection_results (
 
 -- Indexes for performance
 CREATE INDEX idx_inspections_user_id ON inspections(user_id);
-CREATE INDEX idx_inspections_user_status ON inspections(status);
-CREATE INDEX idx_inspections_user_results_inspection_id ON inspection_results(inspection_id);
+CREATE INDEX idx_inspections_status ON inspections(status);
+CREATE INDEX idx_inspection_results_inspection_id ON inspection_results(inspection_id); 
