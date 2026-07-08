@@ -1,64 +1,81 @@
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { FaCheckCircle, FaSave } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { FaCheckCircle } from "react-icons/fa";
+import api from "../api";
 import "./Results.css";
 
 function Results() {
   const location = useLocation();
+  const { id } = useParams();
 
-  // Images and result data are received from the previous page
+  const [inspection, setInspection] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const beforeImage = location.state?.beforePreview;
   const afterImage = location.state?.afterPreview;
-  const result = location.state?.result || "Change Detected";
 
-  const [savedMessage, setSavedMessage] = useState(false);
+  useEffect(() => {
+    const fetchInspection = async () => {
+      try {
+        const response = await api.get(`/api/inspections/${id}`);
+        setInspection(response.data);
+      } catch (err) {
+        setError("Failed to load inspection results.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Uses backend detection data when available, otherwise displays demo boxes
-  const detectedChanges = location.state?.detectedChanges || [
-    { x: 28, y: 12, width: 16, height: 28 },
-    { x: 68, y: 18, width: 18, height: 26 },
-    { x: 12, y: 58, width: 18, height: 24 },
-    { x: 66, y: 62, width: 22, height: 25 },
-  ];
+    fetchInspection();
+  }, [id]);
 
-  // Prevents showing the results page without uploaded images
-  if (!beforeImage || !afterImage) {
+  if (loading) {
     return (
       <div className="results-page">
         <h1>Results Screen</h1>
-        <p>No uploaded images found. Please go back to Upload and try again.</p>
+        <p>Loading results...</p>
       </div>
     );
   }
 
-  // Shows a short confirmation message after saving
-  const handleSaveToHistory = () => {
-    setSavedMessage(true);
+  if (error) {
+    return (
+      <div className="results-page">
+        <h1>Results Screen</h1>
+        <p className="upload-error">{error}</p>
+      </div>
+    );
+  }
 
-    setTimeout(() => {
-      setSavedMessage(false);
-    }, 2000);
-  };
+  if (!beforeImage || !afterImage) {
+    return (
+      <div className="results-page">
+        <h1>Results Screen</h1>
+        <p>No image previews available. Please open results after uploading images.</p>
+      </div>
+    );
+  }
+
+  const changesDetected = inspection?.results?.changesDetected;
+  const detectedChanges = inspection?.results?.boundingBoxes || [];
 
   return (
     <div className="results-page">
       <h1>Results Screen</h1>
 
-      {/* Result summary */}
       <div className="result-status">
         <FaCheckCircle />
-
         <div>
-          <h2>{result}</h2>
-          <p>Differences were found between the images.</p>
+          <h2>{changesDetected ? "Change Detected" : "No Change Detected"}</h2>
+          <p>
+            {changesDetected
+              ? "Differences were found between the images."
+              : "No significant differences were found between the images."}
+          </p>
         </div>
-
-        <button onClick={handleSaveToHistory}>
-          <FaSave /> Save to History
-        </button>
       </div>
 
-      {/* Before and after image comparison */}
       <div className="images-grid">
         <div>
           <h3>Before Image (Old State)</h3>
@@ -66,12 +83,10 @@ function Results() {
         </div>
 
         <div>
-          <h3>After Image (New State) with Detected Changes</h3>
-
+          <h3>After Image (New State)</h3>
           <div className="after-image-wrapper">
             <img className="result-image" src={afterImage} alt="After" />
 
-            {/* Draws red boxes over detected changes */}
             {detectedChanges.map((box, index) => (
               <div
                 key={index}
@@ -88,12 +103,12 @@ function Results() {
         </div>
       </div>
 
-      <div className="legend">
-        <span></span>
-        Detected changes are highlighted in red.
-      </div>
-
-      {savedMessage && <div className="saved-toast">Saved</div>}
+      {detectedChanges.length > 0 && (
+        <div className="legend">
+          <span></span>
+          Detected changes are highlighted in red.
+        </div>
+      )}
     </div>
   );
 }
