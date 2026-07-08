@@ -1,23 +1,33 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Create a pre-configured Axios instance that points at our backend.
-// All API calls should use this instance instead of importing axios directly.
+// Create a reusable Axios instance for all API requests
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
 });
 
-// TODO: Add a request interceptor to attach the JWT token
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem('token'); // or however you store it
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
+// Attach the JWT token to every outgoing request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
 
-// TODO: Add a response interceptor to handle 401 errors (redirect to login)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+// Handle global API errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // If the token is invalid or expired, log the user out
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;

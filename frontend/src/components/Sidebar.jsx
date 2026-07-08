@@ -1,38 +1,41 @@
-import { NavLink } from 'react-router-dom';
-import './Sidebar.css';
+import { NavLink } from "react-router-dom";
+import {
+  FaLandmark,
+  FaCloudUploadAlt,
+  FaRegQuestionCircle,
+  FaChartBar,
+  FaHistory,
+} from "react-icons/fa";
 
-// Navigation items matching the Figma design
-const navItems = [
-  { path: '/upload', label: 'Upload', icon: '📤' },
-  { path: '/processing', label: 'Processing', icon: '⚙️' },
-  { path: '/results', label: 'Results', icon: '📊' },
-  { path: '/history', label: 'History', icon: '📋' },
-  { path: '/help', label: 'Help', icon: '❓' },
-];
-
-// TODO: Replace emoji icons with proper SVG icons or an icon library
-// TODO: Add user info / logout button at the bottom
-// TODO: Hide sidebar on the login page (or make it conditional)
+import "./Sidebar.css";
 
 function Sidebar() {
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <h2>BCD</h2>
+
+      {/* System logo and title */}
+      <div className="sidebar-logo">
+        <FaLandmark />
+        <h2>Municipal Illegal Construction Detection System</h2>
       </div>
-      <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
-            }
-          >
-            <span className="sidebar-link-icon">{item.icon}</span>
-            <span className="sidebar-link-label">{item.label}</span>
-          </NavLink>
-        ))}
+
+      {/* Navigation menu */}
+      <nav>
+        <NavLink to="/upload">
+          <FaCloudUploadAlt /> Upload
+        </NavLink>
+
+        <NavLink to="/results">
+          <FaChartBar /> Results
+        </NavLink>
+
+        <NavLink to="/history">
+          <FaHistory /> History
+        </NavLink>
+
+        <NavLink to="/help">
+          <FaRegQuestionCircle /> Help
+        </NavLink>
       </nav>
     </aside>
   );
