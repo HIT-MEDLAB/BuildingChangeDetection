@@ -1,53 +1,200 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const authenticate = require('../middleware/authenticate');
+const pool = require('../config/db');
+const FormData = require('form-data');
+const fs = require('fs');
+const fetch = require('node-fetch');
 
-// TODO: Add authentication middleware to all routes below
-// const authenticate = require('../middleware/authenticate');
-// router.use(authenticate);
+//Ensure uploads directory exists on startup
+const uploadsDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+
+router.use(authenticate);
+
+// --- Multer configuration ---
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${uuidv4()}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/tiff'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true); 
+  } else{
+    cb(new Error('Invalid file type. Only JPEG, PNG and TIFF are allowed.'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } //10MB
+});
 
 // POST /api/inspections/upload
-// TODO: Implement image upload
-// Steps:
-//   1. Accept multipart form data with two images (use multer package)
-//   2. Validate file types and sizes
-//   3. Save files to disk (or cloud storage — your choice)
-//   4. Create an inspection record in the database with status "pending"
-//   5. Send the images to the ML service for processing (async)
-//   6. Return the inspection ID to the client
-//
-// Package you'll need: npm install multer
-router.post('/upload', (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    hint: 'Implement image upload with multer — see docs/api-spec.md',
+router.post('/upload', upload.fields([
+  { name: 'imageBefore', maxCount: 1 },
+  { name: 'imageAfter', maxCount: 1 }
+]), async (req, res) => {
+  if (!req.files?.imageBefore || !req.files?.imageAfter) {
+    return res.status(400).json({ error: 'Both images are required' });
+  }
+
+  const imageBeforePath = req.files.imageBefore[0].path;
+  const imageAfterPath = req.files.imageAfter[0].path;
+
+  try{
+    const result = await pool.query(
+      `INSERT INTO inspections (user_id, status, image_before_path, image_after_path)
+      VALUES ($1, 'pending', $2, $3)
+      RETURNING id`,
+      [req.user.userId, imageBeforePath, imageAfterPath]
+    );
+
+    const inspectionId = result.rows[0].id;
+
+    const form = new FormData();
+    form.append('image_before', fs.createReadStream(imageBeforePath));
+    form.append('image_after', fs.createReadStream(imageAfterPath));
+
+    const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+    const mlResponse = await fetch(`${mlServiceUrl}/predict`, {
+      method: 'POST',
+      body: form,
+      headers: form.getHeaders()
+    });
+
+    const mlResult = await mlResponse.json();
+
+    await pool.query(
+    `INSERT INTO inspection_results (inspection_id, changes_detected, result_data)
+    VALUES ($1, $2, $3)`,
+    [inspectionId, mlResult.changes_detected, JSON.stringify(mlResult)]
+    );
+
+    await pool.query(
+    `UPDATE inspections SET status = 'completed', updated_at = NOW()
+    WHERE id = $1`,
+    [inspectionId]
+    );
+    
+
+    res.status(201).json({
+    inspectionId: inspectionId,
+    status: 'completed',
+    message: 'Images uploaded. Processing will begin shortly.'
   });
+
+  }catch (err){
+    console.error('Upload error: ', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/inspections
+router.get('/', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
+
+  try {
+    const inspectionsResult = await pool.query(
+      `SELECT i.id, i.status, i.created_at, i.notes,
+          i.image_before_path, i.image_after_path,
+          r.changes_detected
+      FROM inspections i
+      LEFT JOIN inspection_results r ON r.inspection_id = i.id
+      WHERE i.user_id = $1
+      ORDER BY i.created_at DESC
+      LIMIT $2 OFFSET $3`,
+      [req.user.userId, limit, offset]
+  );
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM inspections WHERE user_id = $1`,
+      [req.user.userId]
+    );
+
+    const total = parseInt(countResult.rows[0].count);
+
+    res.status(200).json({
+      inspections: inspectionsResult.rows,
+      pagination: {
+        page,
+        limit,
+        total
+      }
+    });
+
+  } catch (err) {
+    console.error('Get inspections error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET /api/inspections/:id
-// TODO: Implement single inspection retrieval
-// Steps:
-//   1. Query the database for the inspection by ID
-//   2. Verify the inspection belongs to the authenticated user
-//   3. Include the results if processing is complete
-//   4. Return 404 if not found
-router.get('/:id', (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    hint: 'Implement inspection retrieval by ID — see docs/api-spec.md',
-  });
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const inspectionResult = await pool.query(
+      `SELECT * FROM inspections WHERE id = $1`,
+      [id]
+    );
+
+    const inspection = inspectionResult.rows[0];
+
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection not found' });
+    }
+
+    if (inspection.user_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    let results = null;
+    if (inspection.status === 'completed') {
+      const resultsQuery = await pool.query(
+        `SELECT * FROM inspection_results WHERE inspection_id = $1`,
+        [id]
+      );
+      results = resultsQuery.rows[0] || null;
+    }
+
+  res.status(200).json({
+    id: inspection.id,
+    status: inspection.status,
+    createdAt: inspection.created_at,
+    notes: inspection.notes,
+    images: {
+      before: inspection.image_before_path,
+      after: inspection.image_after_path
+    },
+    results: results ? {
+      changesDetected: results.changes_detected,
+      boundingBoxes: results.result_data.bounding_boxes
+  } : null
 });
 
-// GET /api/inspections/history
-// TODO: Implement paginated inspection history
-// Steps:
-//   1. Parse query params (page, limit, filters)
-//   2. Query the database with pagination (LIMIT/OFFSET)
-//   3. Return the list with pagination metadata
-router.get('/', (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    hint: 'Implement inspection history with pagination — see docs/api-spec.md',
-  });
+  } catch (err) {
+    console.error('Get inspection error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+    
 
 module.exports = router;

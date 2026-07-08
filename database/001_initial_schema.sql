@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS inspection_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- TODO: Add indexes as needed based on query patterns
--- Example: CREATE INDEX idx_inspections_user_id ON inspections(user_id);
--- Example: CREATE INDEX idx_inspections_status ON inspections(status);
+-- Indexes for performance
+CREATE INDEX idx_inspections_user_id ON inspections(user_id);
+CREATE INDEX idx_inspections_status ON inspections(status);
+CREATE INDEX idx_inspection_results_inspection_id ON inspection_results(inspection_id); 
