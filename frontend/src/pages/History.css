@@ -125,6 +125,24 @@
   }
   
   .active-sort {
-    background: #2563eb !important;
+    background: var(--color-teal) !important;
     color: white;
+  }
+
+  .history-error {
+    margin-top: 24px;
+    padding: 20px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 12px;
+    color: #b91c1c;
+    text-align: center;
+  }
+  
+  .history-error h3 {
+    margin: 0 0 8px;
+  }
+  
+  .history-error p {
+    margin: 0;
   }

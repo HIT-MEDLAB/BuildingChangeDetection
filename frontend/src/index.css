@@ -1,7 +1,21 @@
 :root {
+  /* Main product color palette */
+  --color-navy: #1F4E79;
+  --color-teal: #2E75B6;
+
+  /* Shared neutral colors */
+  --color-page-background: #f8fafc;
+  --color-text: #0f172a;
+  --color-muted-text: #64748b;
+
+  /* Shared feedback colors */
+  --color-success: #15803d;
+  --color-error: #dc2626;
+
+  /* Global font */
   font-family: Arial, sans-serif;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--color-text);
+  background: var(--color-page-background);
 }
 
 html,
@@ -10,7 +24,7 @@ body,
   margin: 0;
   width: 100%;
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--color-page-background);
 }
 
 * {

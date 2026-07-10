@@ -3,7 +3,7 @@
     min-width: 230px;
     max-width: 230px;
   
-    background: #062747;
+    background: var(--color-navy);
     color: white;
     padding: 24px 16px;
     box-sizing: border-box;
@@ -47,9 +47,9 @@
   }
   
   .sidebar nav a.active {
-    background: #2563eb;
+    background: var(--color-teal);
   }
   
   .sidebar nav a:hover {
-    background: #1d4ed8;
+    background: var(--color-teal);
   }

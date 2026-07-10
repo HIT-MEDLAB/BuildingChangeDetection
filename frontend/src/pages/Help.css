@@ -2,13 +2,13 @@
     min-height: 100vh;
     background: #f8fafc;
     font-family: Arial, sans-serif;
-    color: #0f2742;
+    color: var(--color-navy);
     padding: 20px 28px;
   }
   
   .help-title {
     text-align: center;
-    color: #0f2742;
+    color: var(--color-navy);
     margin: 0 0 20px;
     font-size: 28px;
   }
@@ -21,7 +21,7 @@
   }
   
   .help-content h2 {
-    color: #0f2742;
+    color: var(--color-navy);
     font-size: 30px;
     margin: 0 0 8px;
   }
@@ -58,7 +58,7 @@
   }
   
   .steps span {
-    color: #2563eb;
+    color: var(--color-teal);
     font-size: 26px;
     font-weight: bold;
   }
@@ -66,7 +66,7 @@
   .step-box {
     width: 130px;
     text-align: center;
-    color: #0f2742;
+    color: var(--color-navy);
     font-weight: bold;
   }
   
@@ -77,7 +77,7 @@
     display: grid;
     place-items: center;
     font-size: 28px;
-    color: #0f3b63;
+    color: var(--color-navy);
     background: white;
   }
   
@@ -115,12 +115,12 @@
     font-size: 48px;
   }
   
-  .blue { background: #eaf2ff; color: #2563eb; }
+  .blue { background: #eaf2ff; color: var(--color-teal); }
   .green { background: #eaf8ee; color: #15803d; }
   .orange { background: #fff2d8; color: #f59e0b; }
   .purple { background: #f0e8ff; color: #6d28d9; }
   
-  .blue-text { color: #2563eb; }
+  .blue-text { color: var(--color-teal); }
   .green-text { color: #15803d; }
   .orange-text { color: #f59e0b; }
   .purple-text { color: #6d28d9; }
@@ -145,7 +145,7 @@
   }
   
   .steps span {
-    color: #2563eb;
+    color: var(--color-teal);
     font-size: 28px;
     font-weight: bold;
   }
@@ -153,7 +153,7 @@
   .step-box {
     width: 92px;
     text-align: center;
-    color: #0f2742;
+    color: var(--color-navy);
     font-weight: bold;
   }
   
@@ -164,7 +164,7 @@
     display: grid;
     place-items: center;
     font-size: 34px;
-    color: #0f3b63;
+    color: var(--color-navy);
     background: white;
   }
   
@@ -183,11 +183,11 @@
     border: 1px solid #dbeafe;
     border-radius: 12px;
     padding: 18px;
-    color: #0f2742;
+    color: var(--color-navy);
   }
   
   .info-box svg {
-    color: #2563eb;
+    color: var(--color-teal);
     font-size: 28px;
   }
 
