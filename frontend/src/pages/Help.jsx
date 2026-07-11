@@ -14,16 +14,18 @@ import "./Help.css";
 function Help() {
   return (
     <div className="help-page">
-      {/* Main page title */}
+      {/* Main page heading */}
       <h1 className="help-title">Help</h1>
 
       <main className="help-content">
+        {/* Page introduction */}
         <h2>Help & Instructions</h2>
+
         <p className="help-subtitle">
           Find information and guidance to use the system effectively.
         </p>
 
-        {/* User workflow explanation */}
+        {/* Explain the complete inspection workflow */}
         <section className="help-card wide-card">
           <div className="circle blue">
             <FaBookOpen />
@@ -31,6 +33,7 @@ function Help() {
 
           <div>
             <h3 className="blue-text">1. How to Use the System</h3>
+
             <p>① Upload a "Before" image (old state).</p>
             <p>② Upload an "After" image (new state).</p>
             <p>③ Click "Submit" to start processing.</p>
@@ -38,21 +41,29 @@ function Help() {
             <p>⑤ View the detected changes in the results screen.</p>
           </div>
 
-          {/* Visual representation of the workflow */}
+          {/* Visual workflow shown with icons */}
           <div className="steps">
             <Step icon={<FaUpload />} text="Upload Before Image" />
+
             <span>→</span>
+
             <Step icon={<FaUpload />} text="Upload After Image" />
+
             <span>→</span>
+
             <Step icon={<FaPaperPlane />} text="Submit" />
+
             <span>→</span>
+
             <Step icon={<FaSpinner />} text="Processing" />
+
             <span>→</span>
+
             <Step icon={<FaChartBar />} text="View Results" />
           </div>
         </section>
 
-        {/* Tips and common issues section */}
+        {/* Helpful tips and common problems */}
         <div className="help-grid">
           <section className="help-card green-card">
             <div className="circle green">
@@ -61,6 +72,7 @@ function Help() {
 
             <div>
               <h3 className="green-text">2. Tips for Better Results</h3>
+
               <p>✓ Use images of the same location.</p>
               <p>✓ Try to upload images from similar angles.</p>
               <p>✓ Higher quality images give better results.</p>
@@ -74,13 +86,16 @@ function Help() {
 
             <div>
               <h3 className="orange-text">3. Common Issues</h3>
+
               <p>
                 ● <b>Images are not similar:</b> Results may be inaccurate.
               </p>
+
               <p>
-                ● <b>Upload failed:</b> Try again with a supported file
-                (JPG/PNG).
+                ● <b>Upload failed:</b> Try again with a supported JPG or PNG
+                file.
               </p>
+
               <p>
                 ● <b>No changes detected:</b> The system may not detect small
                 differences.
@@ -97,6 +112,7 @@ function Help() {
 
           <div>
             <h3 className="purple-text">4. Contact Support</h3>
+
             <p>
               If you need further assistance or encounter any issues, please
               contact your system administrator.
@@ -104,9 +120,10 @@ function Help() {
           </div>
         </section>
 
-        {/* Additional information */}
+        {/* Additional information for inspectors */}
         <div className="info-box">
           <FaInfoCircle />
+
           <span>
             For more information about the system and its capabilities, please
             refer to the user manual or contact support.
@@ -117,10 +134,10 @@ function Help() {
   );
 }
 
-/* Reusable component that displays a single step in the workflow */
+/* Reusable component that displays one step in the workflow */
 function Step({ icon, text }) {
   return (
-    <div className="help-step-box">
+    <div className="step-box">
       <div>{icon}</div>
       <p>{text}</p>
     </div>
