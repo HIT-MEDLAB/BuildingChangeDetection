@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import "./History.css";
 
+// Backend API base URL (uses .env if available)
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 function History() {
   const [sortOrder, setSortOrder] = useState("newest");
   const [history, setHistory] = useState([]);
@@ -9,14 +13,19 @@ function History() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Load the user's inspection history from the backend
     const fetchHistory = async () => {
       try {
         setLoading(true);
+        setError("");
+
         const response = await api.get("/api/inspections");
         setHistory(response.data.inspections || []);
       } catch (err) {
+        console.error("Failed to load inspection history:", err);
         setError("Failed to load inspection history");
       } finally {
+        // Stop the loading indicator after the request finishes
         setLoading(false);
       }
     };
@@ -24,13 +33,17 @@ function History() {
     fetchHistory();
   }, []);
 
+  // Sort a copy of the history without changing the original state
   const sortedHistory = [...history].sort((a, b) => {
-    const first = new Date(a.created_at).getTime();
-    const second = new Date(b.created_at).getTime();
+    const firstDate = new Date(a.created_at).getTime();
+    const secondDate = new Date(b.created_at).getTime();
 
-    return sortOrder === "newest" ? second - first : first - second;
+    return sortOrder === "newest"
+      ? secondDate - firstDate
+      : firstDate - secondDate;
   });
 
+  // Display a loading message while the history is being fetched
   if (loading) {
     return (
       <div className="history-page">
@@ -45,17 +58,24 @@ function History() {
       <h1>Inspection History</h1>
       <p>View all your saved inspection results.</p>
 
-      {error && <p className="upload-error">{error}</p>}
-
-      {history.length === 0 && !error ? (
+      {/* Display an error message if the request failed */}
+      {error ? (
+        <div className="history-error">
+          <h3>Unable to load history</h3>
+          <p>{error}. Please try again later.</p>
+        </div>
+      ) : history.length === 0 ? (
+        /* Display an empty state when no inspections exist */
         <div className="empty-history">
           <h3>No inspections yet</h3>
           <p>Your uploaded inspections will appear here.</p>
         </div>
       ) : (
         <>
+          {/* Sorting controls */}
           <div className="history-sort">
             <button
+              type="button"
               onClick={() => setSortOrder("newest")}
               className={sortOrder === "newest" ? "active-sort" : ""}
             >
@@ -63,6 +83,7 @@ function History() {
             </button>
 
             <button
+              type="button"
               onClick={() => setSortOrder("oldest")}
               className={sortOrder === "oldest" ? "active-sort" : ""}
             >
@@ -70,6 +91,7 @@ function History() {
             </button>
           </div>
 
+          {/* Display all inspection records */}
           <table className="history-table">
             <thead>
               <tr>
@@ -82,12 +104,21 @@ function History() {
 
             <tbody>
               {sortedHistory.map((item) => {
+                // Convert the backend result into a readable status
                 const resultText =
                   item.changes_detected === true
                     ? "Change Detected"
                     : item.changes_detected === false
                     ? "No Change Detected"
                     : item.status || "Pending";
+
+                // Select the matching CSS class
+                const resultClass =
+                  resultText === "Change Detected"
+                    ? "change"
+                    : resultText === "No Change Detected"
+                    ? "no-change"
+                    : "pending";
 
                 return (
                   <tr key={item.id}>
@@ -100,8 +131,8 @@ function History() {
                     <td>
                       {item.image_before_path ? (
                         <img
-                          src={`http://localhost:3000/${item.image_before_path}`}
-                          alt="Before"
+                          src={`${API_BASE_URL}/${item.image_before_path}`}
+                          alt="Before inspection"
                           className="thumb"
                         />
                       ) : (
@@ -112,8 +143,8 @@ function History() {
                     <td>
                       {item.image_after_path ? (
                         <img
-                          src={`http://localhost:3000/${item.image_after_path}`}
-                          alt="After"
+                          src={`${API_BASE_URL}/${item.image_after_path}`}
+                          alt="After inspection"
                           className="thumb"
                         />
                       ) : (
@@ -122,15 +153,7 @@ function History() {
                     </td>
 
                     <td>
-                      <span
-                        className={
-                          resultText === "Change Detected"
-                            ? "change"
-                            : "no-change"
-                        }
-                      >
-                        {resultText}
-                      </span>
+                      <span className={resultClass}>{resultText}</span>
                     </td>
                   </tr>
                 );

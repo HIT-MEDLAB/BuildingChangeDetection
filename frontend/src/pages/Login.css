@@ -5,7 +5,11 @@ body {
 
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #062747, #0f3b63);
+  background: linear-gradient(
+    135deg,
+    var(--color-navy),
+    var(--color-teal)
+  );
   display: flex;
   justify-content: center;
   align-items: center;
@@ -27,14 +31,14 @@ body {
 
 .login-card h1 {
   margin: 0;
-  color: #0f2742;
+  color: var(--color-navy);
   font-size: 26px;
   font-weight: 700;
 }
 
 .login-card h2 {
   margin: 5px 0 30px;
-  color: #2563eb;
+  color: var(--color-teal);
   font-size: 24px;
   font-weight: 600;
 }
@@ -58,7 +62,7 @@ body {
 
 .login-card input:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--color-teal);
   background-color: white;
 }
 
@@ -67,7 +71,7 @@ body {
   padding: 14px;
   border: none;
   border-radius: 10px;
-  background-color: #2563eb;
+  background-color: var(--color-teal);
   color: white;
   font-size: 17px;
   font-weight: 600;
@@ -75,7 +79,7 @@ body {
 }
 
 .login-card button:hover {
-  background-color: #1d4ed8;
+  background-color: var(--color-teal);
 }
 
 .error-message {

@@ -41,7 +41,7 @@
   }
   
   .step.active {
-    background: #2563eb;
+    background: var(--color-teal);
     color: white;
   }
   
@@ -94,7 +94,7 @@
   
   .upload-icon {
     font-size: 54px;
-    color: #0f2742;
+    color: var(--color-navy);
     margin-bottom: 10px;
   }
   
@@ -111,7 +111,7 @@
   }
   
   .upload-placeholder label {
-    background: #2563eb;
+    background: var(--color-teal);
     color: white;
     padding: 12px 28px;
     border-radius: 8px;
@@ -149,7 +149,7 @@
   .upload-button {
     width: 100%;
     margin-top: 8px;
-    background: #06264a;
+    background: var(--color-navy);
     color: white;
     border: none;
     padding: 18px 28px;
@@ -160,7 +160,7 @@
   }
   
   .upload-button:hover {
-    background: #041d38;
+    background: var(--color-navy);
   }
   
   .upload-note {

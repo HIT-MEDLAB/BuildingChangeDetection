@@ -3,7 +3,6 @@ import {
   FaLandmark,
   FaCloudUploadAlt,
   FaRegQuestionCircle,
-  FaChartBar,
   FaHistory,
 } from "react-icons/fa";
 
@@ -12,29 +11,28 @@ import "./Sidebar.css";
 function Sidebar() {
   return (
     <aside className="sidebar">
-
-      {/* System logo and title */}
+      {/* Display the system logo and product name */}
       <div className="sidebar-logo">
         <FaLandmark />
+
         <h2>Municipal Illegal Construction Detection System</h2>
       </div>
 
-      {/* Navigation menu */}
+      {/* Main navigation for pages that can be opened directly */}
       <nav>
         <NavLink to="/upload">
-          <FaCloudUploadAlt /> Upload
-        </NavLink>
-
-        <NavLink to="/results">
-          <FaChartBar /> Results
+          <FaCloudUploadAlt />
+          Upload
         </NavLink>
 
         <NavLink to="/history">
-          <FaHistory /> History
+          <FaHistory />
+          History
         </NavLink>
 
         <NavLink to="/help">
-          <FaRegQuestionCircle /> Help
+          <FaRegQuestionCircle />
+          Help
         </NavLink>
       </nav>
     </aside>

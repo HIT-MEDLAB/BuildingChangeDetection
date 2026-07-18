@@ -5,7 +5,7 @@
     justify-content: center;
     align-items: center;
     font-family: Arial, sans-serif;
-    color: #0f2742;
+    color: var(--color-navy);
   }
   
   .processing-card {
@@ -20,7 +20,7 @@
   .processing-card h1 {
     font-size: 34px;
     margin-bottom: 10px;
-    color: #0f2742;
+    color: var(--color-navy);
   }
   
   .processing-card p {
@@ -32,7 +32,7 @@
     height: 150px;
     margin: 40px auto 28px;
     border-radius: 50%;
-    background: conic-gradient(#2563eb var(--progress), #bfdbfe 0);
+    background: conic-gradient(var(--color-teal) var(--progress), #bfdbfe 0);
     display: grid;
     place-items: center;
     animation: pulse 1.4s infinite ease-in-out;
@@ -51,7 +51,7 @@
     position: relative;
     font-size: 24px;
     font-weight: bold;
-    color: #2563eb;
+    color: var(--color-teal);
     z-index: 1;
   }
   
@@ -62,12 +62,12 @@
   .processing-card h2 {
     font-size: 28px;
   margin-bottom: 8px;
-  color: #0f2742;
+  color: var(--color-navy);
   }
   
   .step-text {
     font-weight: bold;
-    color: #2563eb !important;
+    color: var(--color-teal) !important;
   }
   
   .progress-bar {
@@ -80,14 +80,14 @@
   
   .progress-bar div {
     height: 100%;
-    background: #2563eb;
+    background: var(--color-teal);
     border-radius: 999px;
     transition: width 0.25s ease;
   }
   
   .processing-info {
     background: #eef7ff;
-    color: #2563eb;
+    color: var(--color-teal);
     padding: 16px 22px;
     border-radius: 12px;
     display: flex;
@@ -100,4 +100,32 @@
     0% { transform: scale(1); }
     50% { transform: scale(1.04); }
     100% { transform: scale(1); }
+  }
+
+  .processing-error {
+    margin-top: 24px;
+    padding: 18px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 12px;
+    color: #b91c1c;
+  }
+  
+  .processing-error p {
+    margin: 0 0 16px;
+    font-weight: bold;
+  }
+  
+  .processing-error button {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    background: var(--color-navy);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .processing-error button:hover {
+    opacity: 0.9;
   }

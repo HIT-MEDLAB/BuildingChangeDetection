@@ -51,7 +51,7 @@ function Layout() {
           />
 
           <Route
-            path="/results"
+            path="/results/:id"
             element={
               <ProtectedRoute>
                 <Results />
