@@ -46,10 +46,20 @@ const upload = multer({
 });
 
 // POST /api/inspections/upload
-router.post('/upload', upload.fields([
-  { name: 'imageBefore', maxCount: 1 },
-  { name: 'imageAfter', maxCount: 1 }
-]), async (req, res) => {
+router.post('/upload', (req, res, next) => {
+  upload.fields([
+    { name: 'imageBefore', maxCount: 1 },
+    { name: 'imageAfter', maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   if (!req.files?.imageBefore || !req.files?.imageAfter) {
     return res.status(400).json({ error: 'Both images are required' });
   }
@@ -57,7 +67,8 @@ router.post('/upload', upload.fields([
   const imageBeforePath = req.files.imageBefore[0].path;
   const imageAfterPath = req.files.imageAfter[0].path;
 
-  try{
+  try {
+    // 1. Create inspection record with status pending
     const result = await pool.query(
       `INSERT INTO inspections (user_id, status, image_before_path, image_after_path)
       VALUES ($1, 'pending', $2, $3)
@@ -67,40 +78,63 @@ router.post('/upload', upload.fields([
 
     const inspectionId = result.rows[0].id;
 
-    const form = new FormData();
-    form.append('image_before', fs.createReadStream(imageBeforePath));
-    form.append('image_after', fs.createReadStream(imageAfterPath));
+    // 2. Send images to ML service
+    let mlResult;
+    try {
+      const form = new FormData();
+      form.append('image_before', fs.createReadStream(imageBeforePath));
+      form.append('image_after', fs.createReadStream(imageAfterPath));
 
-    const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
-    const mlResponse = await fetch(`${mlServiceUrl}/predict`, {
-      method: 'POST',
-      body: form,
-      headers: form.getHeaders()
-    });
+      const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+      const mlResponse = await fetch(`${mlServiceUrl}/predict`, {
+        method: 'POST',
+        body: form,
+        headers: form.getHeaders()
+      });
 
-    const mlResult = await mlResponse.json();
+      if (!mlResponse.ok) {
+        throw new Error(`ML service responded with status ${mlResponse.status}`);
+      }
 
+      mlResult = await mlResponse.json();
+
+    } catch (mlErr) {
+      // ML call failed - mark inspection as failed and return clear error
+      console.error('ML service error:', mlErr.message);
+      await pool.query(
+        `UPDATE inspections SET status = 'failed', updated_at = NOW() WHERE id = $1`,
+        [inspectionId]
+      );
+      // Clean up saved image files if ML processing failed
+      fs.unlink(imageBeforePath, () => {});
+      fs.unlink(imageAfterPath, () => {});
+      return res.status(502).json({
+        error: 'ML service unavailable. Inspection marked as failed.',
+        inspectionId
+      });
+    }
+
+    // 3. Save ML results and mark completed
     await pool.query(
-    `INSERT INTO inspection_results (inspection_id, changes_detected, result_data)
-    VALUES ($1, $2, $3)`,
-    [inspectionId, mlResult.changes_detected, JSON.stringify(mlResult)]
+      `INSERT INTO inspection_results (inspection_id, changes_detected, result_data)
+      VALUES ($1, $2, $3)`,
+      [inspectionId, mlResult.changes_detected, JSON.stringify(mlResult)]
     );
 
     await pool.query(
-    `UPDATE inspections SET status = 'completed', updated_at = NOW()
-    WHERE id = $1`,
-    [inspectionId]
+      `UPDATE inspections SET status = 'completed', updated_at = NOW()
+      WHERE id = $1`,
+      [inspectionId]
     );
-    
 
     res.status(201).json({
-    inspectionId: inspectionId,
-    status: 'completed',
-    message: 'Images uploaded. Processing will begin shortly.'
-  });
+      inspectionId,
+      status: 'completed',
+      message: 'Images uploaded. Processing will begin shortly.'
+    });
 
-  }catch (err){
-    console.error('Upload error: ', err);
+  } catch (err) {
+    console.error('Upload error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -196,5 +230,37 @@ router.get('/:id', async (req, res) => {
   }
 });
     
+// DELETE /api/inspections/:id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const inspectionResult = await pool.query(
+      `SELECT * FROM inspections WHERE id = $1`,
+      [id]
+    );
+
+    const inspection = inspectionResult.rows[0];
+
+    // Check inspection exists
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection not found' });
+    }
+
+    // Check ownership - only the owner can delete
+    if (inspection.user_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Delete inspection - results cascade automatically (ON DELETE CASCADE)
+    await pool.query(`DELETE FROM inspections WHERE id = $1`, [id]);
+
+    res.status(200).json({ message: 'Inspection deleted successfully' });
+
+  } catch (err) {
+    console.error('Delete inspection error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 module.exports = router;

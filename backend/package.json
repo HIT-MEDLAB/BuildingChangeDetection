@@ -4,7 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "jest"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(uuid)/)"
+    ]
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -16,6 +22,10 @@
     "multer": "^2.1.1",
     "node-fetch": "^2.7.0",
     "pg": "^8.21.0",
-    "uuid": "^14.0.0"
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
