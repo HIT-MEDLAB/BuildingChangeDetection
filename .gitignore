@@ -41,6 +41,9 @@ weights/
 uploads/
 /tmp/
 
+# Application logs (REQ-LOG-01, winston file transports)
+backend/logs/*.log
+
 # IDE and editor files
 .idea/
 .vscode/
