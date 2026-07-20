@@ -1,3 +1,4 @@
+/* עיצוב כללי של עמוד התוצאות */
 .results-page {
   min-height: 100vh;
   background: #f8fafc;
@@ -6,57 +7,206 @@
   color: var(--color-navy);
 }
 
+/* כותרת ראשית של מסך התוצאות */
 .results-page h1 {
   text-align: center;
   font-size: 32px;
   margin-bottom: 28px;
 }
 
+/* הודעות כלליות שמופיעות במצבי טעינה או כאשר אין תוצאות */
+.results-message {
+  text-align: center;
+  color: #475569;
+  font-size: 17px;
+}
+
+/* תיבת סיכום התוצאה */
 .result-status {
   border-radius: 14px;
   padding: 22px 28px;
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-bottom: 35px;
+  margin-bottom: 24px;
 }
 
+/* רקע אדום בהיר כאשר נמצאו שינויים */
 .result-status.changes-found {
   background: #fff1f2;
 }
 
+/* רקע ירוק בהיר כאשר לא נמצאו שינויים */
 .result-status.no-changes {
   background: #eaf8ee;
 }
 
+/* עיצוב האייקון שבתיבת הסיכום */
 .result-status svg {
   font-size: 34px;
   flex-shrink: 0;
 }
 
+/* צבע אדום לכותרת ולאייקון כאשר נמצאו שינויים */
 .result-status.changes-found svg,
 .result-status.changes-found h2 {
   color: #dc2626;
 }
 
+/* צבע ירוק לכותרת ולאייקון כאשר לא נמצאו שינויים */
 .result-status.no-changes svg,
 .result-status.no-changes h2 {
   color: #15803d;
 }
 
+/* הסרת מרווח ברירת המחדל מהכותרת שבתיבת הסיכום */
 .result-status h2 {
   margin: 0;
 }
 
+/* עיצוב הטקסט שמתחת לכותרת הסיכום */
 .result-status p {
   margin: 6px 0 0;
   color: #334155;
 }
 
+/* ===================================================== */
+/*                 Case Classification                    */
+/* ===================================================== */
+
+.case-classification {
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.case-classification label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--color-navy);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.case-classification-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.case-classification select {
+  min-width: 190px;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.update-case-status-button {
+  border: none;
+  border-radius: 8px;
+  padding: 11px 18px;
+  background: var(--color-teal);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.update-case-status-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.update-case-status-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.current-case-status {
+  margin-top: 12px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.case-status-success {
+  margin-top: 10px;
+  color: #15803d;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.case-status-error {
+  margin-top: 10px;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* ===================================================== */
+/*                    PDF Report                          */
+/* ===================================================== */
+
+.report-actions {
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.download-report-button {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  background: var(--color-navy);
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.download-report-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 16px rgba(15, 23, 42, 0.18);
+}
+
+.download-report-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.report-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* ===================================================== */
+/*                     Images                             */
+/* ===================================================== */
+
 .images-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 34px;
+}
+
+.image-section {
+  min-width: 0;
 }
 
 .images-grid h3 {
@@ -108,6 +258,10 @@
   border-bottom-right-radius: 4px;
 }
 
+/* ===================================================== */
+/*                       Legend                           */
+/* ===================================================== */
+
 .legend {
   margin-top: 28px;
   display: flex;
@@ -127,6 +281,7 @@
   flex-shrink: 0;
 }
 
+/* Toast */
 .saved-toast {
   position: fixed;
   bottom: 24px;
@@ -139,12 +294,37 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
+/* ===================================================== */
+/*                    Responsive                          */
+/* ===================================================== */
+
 @media (max-width: 800px) {
   .results-page {
     padding: 24px 18px;
   }
 
+  .case-classification-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .case-classification select {
+    width: 100%;
+  }
+
+  .update-case-status-button {
+    width: 100%;
+  }
+
   .images-grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-actions {
+    align-items: stretch;
+  }
+
+  .download-report-button {
+    width: 100%;
   }
 }

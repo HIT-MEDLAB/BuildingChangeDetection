@@ -1,148 +1,319 @@
 .history-page {
-    padding: 40px 60px;
-    background: #f8fafc;
-    min-height: 100vh;
-    color: #0f172a;
-  }
-  
-  .history-page h1 {
-    color: #0f172a;
-    font-size: 34px;
-    font-weight: 700;
-  }
-  
-  .history-page p {
-    color: #334155;
-  }
-  
-  .history-table {
-    width: 100%;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    overflow: hidden;
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  
-  .history-table th {
-    color: #0f172a;
-    background: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 18px 24px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .history-table td {
-    color: #0f172a;
-    font-size: 17px;
-    padding: 18px 24px;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .thumb {
-    width: 140px;
-    height: 75px;
-    object-fit: cover;
-    border-radius: 8px;
-    display: block;
-  }
-  
-  .change {
-    background: #fee2e2;
-    color: #ef4444;
-    padding: 9px 14px;
-    border-radius: 8px;
-    font-weight: 700;
-    display: inline-block;
-  }
-  
-  .no-change {
-    background: #dcfce7;
-    color: #15803d;
-    padding: 9px 14px;
-    border-radius: 8px;
-    font-weight: 700;
-    display: inline-block;
-  }
-  
-  .actions {
-    display: flex;
-    gap: 8px;
-  }
-  
-  .view-btn,
-  .delete-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: white;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  
-  .delete-btn {
-    color: #dc2626;
-  }
-  
-  .view-btn:hover,
-  .delete-btn:hover {
-    background: #f1f5f9;
-  }ֿ
+  padding: 40px 60px;
+  background: #f8fafc;
+  min-height: 100vh;
+  color: #0f172a;
+}
 
-  .history-table th:first-child,
+.history-page h1 {
+  color: #0f172a;
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.history-page p {
+  color: #334155;
+}
+
+/* הודעת טעינה */
+.history-message {
+  margin-top: 20px;
+}
+
+/* הודעת שגיאה בטעינת ההיסטוריה */
+.history-error {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 12px;
+  color: #b91c1c;
+  text-align: center;
+}
+
+.history-error h3 {
+  margin: 0 0 8px;
+}
+
+.history-error p {
+  margin: 0;
+}
+
+/* מצב ריק כאשר אין בדיקות */
+.empty-history {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  text-align: center;
+}
+
+/* כפתורי מיון */
+.history-sort {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.history-sort button {
+  padding: 10px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.history-sort button:hover {
+  background: #f1f5f9;
+}
+
+.active-sort {
+  background: var(--color-teal) !important;
+  color: white;
+}
+
+/* מאפשר גלילה אופקית אם הטבלה רחבה מהמסך */
+.history-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* טבלת ההיסטוריה */
+.history-table {
+  width: 100%;
+  min-width: 1100px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+
+.history-table th {
+  color: #0f172a;
+  background: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 18px 24px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.history-table td {
+  color: #0f172a;
+  font-size: 17px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.history-table th:first-child,
 .history-table td:first-child {
   min-width: 230px;
   white-space: nowrap;
 }
 
-.history-table th,
-.history-table td {
-  vertical-align: middle;
+/* מסיר קו תחתון מהשורה האחרונה */
+.history-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.history-table {
-  table-layout: auto;
+/* תמונות ממוזערות */
+.thumb {
+  width: 140px;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
 }
 
-.history-sort {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 20px;
+/* טקסט כאשר תמונה חסרה */
+.missing-data {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* תוצאת AI: נמצא שינוי */
+.change {
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* תוצאת AI: לא נמצא שינוי */
+.no-change {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* סטטוס של בדיקה שעדיין בטיפול */
+.pending {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* סטטוס של בדיקה שנכשלה */
+.failed-result {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ===================================================== */
+/*                    Case Status                         */
+/* ===================================================== */
+
+/* מקרה שנמצא עדיין בבדיקה */
+.case-status-under-review {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* מקרה שאושר על ידי הפקח */
+.case-status-confirmed {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* מקרה שנדחה על ידי הפקח */
+.case-status-dismissed {
+  background: #e2e8f0;
+  color: #475569;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* אזור כפתור הורדת הדוח */
+.report-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* כפתור PDF */
+.history-report-button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* מעבר עכבר */
+.history-report-button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+/* כפתור בזמן טעינה או כאשר הדוח לא זמין */
+.history-report-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* שגיאת הורדת PDF */
+.history-report-error {
+  margin: 0;
+  max-width: 180px;
+  color: #dc2626 !important;
+  font-size: 12px;
+}
+
+/* הודעה כאשר אין דוח */
+.report-unavailable {
+  margin: 0;
+  color: #64748b !important;
+  font-size: 12px;
+}
+
+/* נשמר לעיצוב כפתורים קיימים אם עדיין משתמשים בהם */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.view-btn,
+.delete-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-btn {
+  color: #dc2626;
+}
+
+.view-btn:hover,
+.delete-btn:hover {
+  background: #f1f5f9;
+}
+
+/* התאמות למסכים קטנים */
+@media (max-width: 800px) {
+  .history-page {
+    padding: 24px 18px;
   }
-  
+
+  .history-page h1 {
+    font-size: 28px;
+  }
+
+  .history-sort {
+    flex-direction: column;
+  }
+
   .history-sort button {
-    padding: 10px 18px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  
-  .active-sort {
-    background: var(--color-teal) !important;
-    color: white;
+    width: 100%;
   }
 
-  .history-error {
-    margin-top: 24px;
-    padding: 20px;
-    background: #fff1f2;
-    border: 1px solid #fecdd3;
-    border-radius: 12px;
-    color: #b91c1c;
-    text-align: center;
+  .history-table {
+    min-width: 1000px;
   }
-  
-  .history-error h3 {
-    margin: 0 0 8px;
-  }
-  
-  .history-error p {
-    margin: 0;
-  }
+}
