@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const inspectionRoutes = require('./routes/inspections');
+const adminRoutes = require('./routes/admin');
+const reportRoutes = require('./routes/report');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -26,6 +28,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/inspections', inspectionRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/report', reportRoutes);
 
 // --- Error handling (must be last) ---
 app.use(errorHandler);
