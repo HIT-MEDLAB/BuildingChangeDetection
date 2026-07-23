@@ -1,0 +1,316 @@
+/* Main admin page */
+.admin-page {
+    min-height: 100vh;
+    padding: 40px 55px;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  
+  /* Page title */
+  .admin-page h1 {
+    margin: 0 0 8px;
+    font-size: 34px;
+    color: var(--color-navy);
+  }
+  
+  /* Subtitle below the page title */
+  .admin-subtitle {
+    margin: 0 0 28px;
+    color: #475569;
+    font-size: 16px;
+  }
+  
+  /* User creation card and users table card */
+  .admin-create-card,
+  .admin-users-card {
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+  }
+  
+  /* Space below the create user card */
+  .admin-create-card {
+    margin-bottom: 28px;
+  }
+  
+  /* Section header */
+  .admin-section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  
+  /* Section icon */
+  .admin-section-title > svg {
+    font-size: 28px;
+    color: var(--color-teal);
+  }
+  
+  /* Section heading */
+  .admin-section-title h2,
+  .admin-users-card h2 {
+    margin: 0;
+    color: var(--color-navy);
+  }
+  
+  /* Section description */
+  .admin-section-title p {
+    margin: 5px 0 0;
+    color: #64748b;
+  }
+  
+  /* Create user form */
+  .admin-create-form {
+    display: grid;
+    grid-template-columns:
+      minmax(160px, 1fr)
+      minmax(190px, 1.3fr)
+      minmax(160px, 1fr)
+      minmax(140px, 0.7fr)
+      auto;
+    align-items: end;
+    gap: 14px;
+  }
+  
+  /* Form field */
+  .admin-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  
+  /* Form label */
+  .admin-form-field label {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  
+  /* Form inputs and select */
+  .admin-form-field input,
+  .admin-form-field select {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  
+  /* Focus state */
+  .admin-form-field input:focus,
+  .admin-form-field select:focus,
+  .admin-role-select:focus {
+    border-color: var(--color-teal);
+    outline: none;
+  }
+  
+  /* Create user button */
+  .admin-create-button {
+    min-height: 43px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-teal);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  
+  /* Disabled button */
+  .admin-create-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Success message */
+  .admin-success-message {
+    margin: 16px 0 0;
+    color: #15803d;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  
+  /* Error message */
+  .admin-error-message {
+    margin: 16px 0 0;
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  
+  /* General error container */
+  .admin-general-error {
+    margin: 0 0 20px;
+    padding: 13px 16px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 8px;
+  }
+  
+  /* Users section heading */
+  .admin-users-card h2 {
+    margin-bottom: 20px;
+  }
+  
+  /* Enable horizontal scrolling on small screens */
+  .admin-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  /* Users table */
+  .admin-users-table {
+    width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
+  }
+  
+  /* Table headers */
+  .admin-users-table th {
+    padding: 14px;
+    background: #f8fafc;
+    color: #334155;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  /* Table cells */
+  .admin-users-table td {
+    padding: 15px 14px;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  
+  /* Remove the border from the last row */
+  .admin-users-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* User name section */
+  .admin-user-name {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 700;
+  }
+  
+  /* Current user label */
+  .admin-user-name small {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  
+  /* Role selection */
+  .admin-role-select {
+    min-width: 130px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: white;
+    color: #334155;
+  }
+  
+  /* Active account badge */
+  .admin-status-active {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  
+  /* Disabled account badge */
+  .admin-status-disabled {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  
+  /* Enable and disable buttons */
+  .admin-disable-button,
+  .admin-enable-button {
+    padding: 8px 13px;
+    border-radius: 8px;
+    background: white;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  
+  /* Disable button */
+  .admin-disable-button {
+    border: 1px solid #fecaca;
+    color: #dc2626;
+  }
+  
+  /* Enable button */
+  .admin-enable-button {
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+  }
+  
+  /* Disabled controls */
+  .admin-disable-button:disabled,
+  .admin-enable-button:disabled,
+  .admin-role-select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  
+  /* Informational message */
+  .admin-message {
+    color: #64748b;
+  }
+  
+  /* Tablet layout */
+  @media (max-width: 1200px) {
+    .admin-create-form {
+      grid-template-columns: 1fr 1fr;
+    }
+  
+    .admin-create-button {
+      width: 100%;
+    }
+  }
+  
+  /* Mobile layout */
+  @media (max-width: 700px) {
+    .admin-page {
+      padding: 24px 18px;
+    }
+  
+    .admin-page h1 {
+      font-size: 28px;
+    }
+  
+    .admin-create-form {
+      grid-template-columns: 1fr;
+    }
+  
+    .admin-create-button {
+      width: 100%;
+    }
+  }

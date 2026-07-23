@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
+
 import "./App.css";
 
 import Login from "./pages/Login";
@@ -7,17 +13,20 @@ import Processing from "./pages/Processing";
 import Results from "./pages/Results";
 import History from "./pages/History";
 import Help from "./pages/Help";
+import Admin from "./pages/Admin";
 
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 function Layout() {
   const location = useLocation();
 
-  // Hide the sidebar on the Login page
+  // Hide the sidebar on the Login and Processing pages.
   const hideSidebar =
     location.pathname === "/" ||
-    location.pathname === "/login";
+    location.pathname === "/login" ||
+    location.pathname.startsWith("/processing/");
 
   return (
     <div className="app-layout">
@@ -25,7 +34,6 @@ function Layout() {
 
       <main className="app-main">
         <Routes>
-
           {/* Public routes */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
@@ -67,13 +75,23 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+
+          {/* Route accessible only to administrators */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          />
         </Routes>
       </main>
     </div>
   );
 }
 
-// Main application component
+// Main application component.
 function App() {
   return (
     <BrowserRouter>

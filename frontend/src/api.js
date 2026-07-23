@@ -1,28 +1,35 @@
 import axios from "axios";
 
-// Create a reusable Axios instance for all API requests
+// Create a reusable Axios instance for all API requests.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:3000",
 });
 
-// Attach the JWT token to every outgoing request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+// Attach the JWT token to every outgoing request.
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Handle global API errors
+// Handle expired or invalid authentication tokens globally.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // If the token is invalid or expired, log the user out
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isLoggedIn");
+
       window.location.href = "/login";
     }
 
