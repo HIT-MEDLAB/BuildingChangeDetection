@@ -47,6 +47,12 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } //10MB
 });
 
+// NFR-PERF-01: the PRD requires a response within 8s end-to-end. Give the ML
+// call a hard budget well under that so a hung/slow model fails fast into the
+// `failed` path instead of hanging the whole request (and the client) with it.
+// Configurable via env (e.g. lowering it in tests) without a code change.
+const ML_TIMEOUT_MS = parseInt(process.env.ML_TIMEOUT_MS, 10) || 5000;
+
 // POST /api/inspections/upload
 router.post('/upload', (req, res, next) => {
   upload.fields([
@@ -88,21 +94,54 @@ router.post('/upload', (req, res, next) => {
       form.append('image_after', fs.createReadStream(imageAfterPath));
 
       const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
-      const mlResponse = await fetch(`${mlServiceUrl}/predict`, {
-        method: 'POST',
-        body: form,
-        headers: form.getHeaders()
-      });
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), ML_TIMEOUT_MS);
+
+      let mlResponse;
+      try {
+        mlResponse = await fetch(`${mlServiceUrl}/predict`, {
+          method: 'POST',
+          body: form,
+          headers: form.getHeaders(),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutHandle);
+      }
 
       if (!mlResponse.ok) {
-        throw new Error(`ML service responded with status ${mlResponse.status}`);
+        // The ML service (FastAPI) returns structured errors as { detail: "..." }
+        // for cases like corrupt images or mismatched camera angles (REQ-CORE-06).
+        // Surface that specific message to the client instead of a generic one.
+        let detail;
+        try {
+          const errBody = await mlResponse.json();
+          detail = errBody?.detail;
+        } catch {
+          // response wasn't JSON - fall through with no detail
+        }
+        const err = new Error(detail || `ML service responded with status ${mlResponse.status}`);
+        err.clientMessage = detail ? `Comparison failed - ${detail.replace(/^comparison failed - /i, '')}` : undefined;
+        throw err;
       }
 
       mlResult = await mlResponse.json();
 
+      // REQ-CORE-06 / NFR-REL-01: the model can be "up" and still return
+      // something we can't use (wrong shape, missing fields) - treat that the
+      // same as a failure rather than letting a malformed result reach the DB.
+      if (typeof mlResult?.changes_detected !== 'boolean' || !Array.isArray(mlResult?.bounding_boxes)) {
+        throw new Error('ML service returned an unexpected response shape');
+      }
+
     } catch (mlErr) {
-      // ML call failed - mark inspection as failed and return clear error
-      logger.error('ML service error', { message: mlErr.message, inspectionId, userId: req.user.userId });
+      // ML call failed (down, timed out, or bad response) - mark inspection
+      // as failed and return a clear error instead of hanging or crashing.
+      const isTimeout = mlErr.name === 'AbortError';
+      const message = isTimeout
+        ? `ML service timed out after ${ML_TIMEOUT_MS}ms`
+        : mlErr.message;
+      logger.error('ML service error', { message, inspectionId, userId: req.user.userId });
       await pool.query(
         `UPDATE inspections SET status = 'failed', updated_at = NOW() WHERE id = $1`,
         [inspectionId]
@@ -110,8 +149,15 @@ router.post('/upload', (req, res, next) => {
       // Clean up saved image files if ML processing failed
       fs.unlink(imageBeforePath, () => {});
       fs.unlink(imageAfterPath, () => {});
+      // REQ-CORE-06: a clear, plain-language message instead of a raw error/crash.
+      // Prefer the ML service's specific reason (e.g. corrupt file, mismatched
+      // angles) when we have one; otherwise fall back to a generic message.
+      const clientMessage = isTimeout
+        ? 'Comparison failed - the analysis took too long. Please try again.'
+        : (mlErr.clientMessage || 'Comparison failed - the images could not be compared. Please try different images.');
+
       return res.status(502).json({
-        error: 'ML service unavailable. Inspection marked as failed.',
+        error: clientMessage,
         inspectionId
       });
     }

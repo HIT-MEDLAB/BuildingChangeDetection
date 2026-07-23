@@ -37,6 +37,60 @@ describe('POST /api/inspections/upload', () => {
 
     expect(res.status).toBe(401);
   });
+
+  test('marks the inspection failed with a clear message for an incompatible image pair', async () => {
+    // NFR-REL-01 / REQ-CORE-06: the ML service can be "up" and still reject a
+    // pair it can't compare (corrupt file, mismatched camera angles, etc). The
+    // backend should relay that specific reason, not a generic crash.
+    const path = require('path');
+    const fixtureImage = path.join(__dirname, 'fixtures', 'test-image.png');
+
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 42 }] }) // INSERT inspections
+      .mockResolvedValueOnce({ rows: [] }); // UPDATE status = 'failed'
+
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: 'Comparison failed - camera angles are too different between the two images'
+      })
+    });
+
+    const res = await request(app)
+      .post('/api/inspections/upload')
+      .set('Authorization', `Bearer ${testToken}`)
+      .attach('imageBefore', fixtureImage)
+      .attach('imageAfter', fixtureImage);
+
+    expect(res.status).toBe(502);
+    expect(res.body.inspectionId).toBe(42);
+    expect(res.body.error).toMatch(/camera angles are too different/i);
+  });
+
+  test('marks the inspection failed when the ML service returns an unexpected response shape', async () => {
+    const path = require('path');
+    const fixtureImage = path.join(__dirname, 'fixtures', 'test-image.png');
+
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 43 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ some: 'unexpected shape' })
+    });
+
+    const res = await request(app)
+      .post('/api/inspections/upload')
+      .set('Authorization', `Bearer ${testToken}`)
+      .attach('imageBefore', fixtureImage)
+      .attach('imageAfter', fixtureImage);
+
+    expect(res.status).toBe(502);
+    expect(res.body.inspectionId).toBe(43);
+  });
 });
 
 describe('DELETE /api/inspections/:id', () => {

@@ -75,7 +75,9 @@ router.post('/login', async (req, res) => {
 
 
 
-// TODO: Decide if you need a registration endpoint
-// router.post('/register', (req, res) => { ... });
+// No self-registration endpoint by design. Per the PRD (section 3.2, US-6),
+// access is admin-managed: an admin creates accounts via
+// POST /api/admin/users (see routes/admin.js), not public sign-up. This is
+// appropriate for a municipal tool with a fixed set of inspector/admin staff.
 
 module.exports = router;

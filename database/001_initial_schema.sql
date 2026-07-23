@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS inspection_results (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_inspections_user_id ON inspections(user_id);
-CREATE INDEX idx_inspections_status ON inspections(status);
-CREATE INDEX idx_inspection_results_inspection_id ON inspection_results(inspection_id); 
+-- IF NOT EXISTS so this file can be safely re-applied to an existing DB
+-- (e.g. demo setup, or re-running docker-entrypoint-initdb.d scripts) without
+-- erroring on a second run.
+CREATE INDEX IF NOT EXISTS idx_inspections_user_id ON inspections(user_id);
+CREATE INDEX IF NOT EXISTS idx_inspections_status ON inspections(status);
+CREATE INDEX IF NOT EXISTS idx_inspection_results_inspection_id ON inspection_results(inspection_id);

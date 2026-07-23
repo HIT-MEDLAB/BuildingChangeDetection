@@ -1,6 +1,10 @@
 import axios from "axios";
 
 // Create a reusable Axios instance for all API requests.
+// Convention: VITE_API_URL is the server origin ONLY (no trailing /api) —
+// every call site in src/pages/*.jsx already prefixes its path with /api
+// (e.g. api.post("/api/auth/login")). Do not add /api to VITE_API_URL, or
+// requests resolve to /api/api/... and 404 (see .env.example).
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
