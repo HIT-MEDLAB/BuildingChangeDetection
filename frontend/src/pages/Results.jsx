@@ -111,15 +111,17 @@ function Results() {
         }
 
         // Uses a backend error message when one is available.
-        const backendMessage =
-          err.response?.data?.message ||
-          err.response?.data?.error;
-
-        // Displays a clear error message to the user.
-        setError(
-          backendMessage ||
-            "Failed to load inspection results."
-        );
+        if (err.response?.status === 404) {
+          setError("The inspection could not be found.");
+        } else if (err.response?.status === 403) {
+          setError(
+            "You do not have permission to view this inspection."
+          );
+        } else {
+          setError(
+            "We could not load the inspection results. Please try again."
+          );
+        }
       } finally {
         // Ends the loading state only while the component is active.
         if (isActive) {
@@ -177,8 +179,7 @@ function Results() {
       // Displays an appropriate message based on the response status.
       if (err.response?.status === 400) {
         setCaseStatusError(
-          err.response?.data?.error ||
-            "Invalid case status."
+            "The selected case status is not valid."
         );
       } else if (err.response?.status === 403) {
         setCaseStatusError(

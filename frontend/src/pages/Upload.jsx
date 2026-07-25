@@ -61,10 +61,10 @@ function Upload() {
   // Sends both images to the backend as multipart/form-data.
   const handleSubmit = async () => {
     // Safety check - this should never happen because
-// the Submit button stays disabled until both images are selected.
-if (!beforeImage || !afterImage) {
-  return;
-}
+    // the Submit button stays disabled until both images are selected.
+    if (!beforeImage || !afterImage) {
+     return;
+   }
 
     setError("");
     setLoading(true);
@@ -100,11 +100,15 @@ if (!beforeImage || !afterImage) {
       });
     } catch (err) {
       // Display a plain-language message instead of a technical error.
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          "Upload failed. Please try again."
-      );
+      if (err.response?.status === 413) {
+        setError("One or both images are too large.");
+      } else if (err.response?.status === 415) {
+        setError("Please upload a supported image file.");
+      } else {
+        setError(
+          "We could not upload the images. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }

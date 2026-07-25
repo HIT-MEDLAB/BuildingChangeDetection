@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { FaInfoCircle } from "react-icons/fa";
 import api from "../api";
 import "./Processing.css";
 
 function Processing() {
+  // Allows navigation to the Results or Upload page.
   const navigate = useNavigate();
+
+  // Provides access to the image previews passed from Upload.
   const location = useLocation();
+
+  // Gets the inspection ID from the URL.
   const { id } = useParams();
 
-  // Images received from the Upload page.
-  // The empty object prevents errors if the page was opened directly.
+  // Stores the image previews received from the Upload page.
+  // The empty object prevents errors when the page is opened directly.
   const images = location.state || {};
 
-  // Controls the simulated visual progress shown to the user.
+  // Controls the visual progress shown to the user.
   const [progress, setProgress] = useState(20);
 
   // Describes the current processing step.
@@ -21,17 +30,17 @@ function Processing() {
     "Uploading images..."
   );
 
-  // Stores a clear message when processing fails.
+  // Stores a clear, user-friendly processing error.
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Stores the next polling timer so it can be cancelled.
+    // Stores the polling timer so it can be cancelled.
     let pollingTimeout;
 
-    // Prevents state updates after the user leaves the page.
+    // Prevents state updates after the component is removed.
     let isActive = true;
 
-    // Stops the polling timer completely.
+    // Stops the current polling timer.
     const stopPolling = () => {
       if (pollingTimeout) {
         clearTimeout(pollingTimeout);
@@ -40,12 +49,12 @@ function Processing() {
 
     // Checks the current inspection status from the backend.
     const checkStatus = async () => {
-      // Do not continue if the component is no longer active.
+      // Stop immediately if the user has already left the page.
       if (!isActive) {
         return;
       }
 
-      // An inspection ID is required in order to request its status.
+      // The inspection ID is required to check the status.
       if (!id) {
         setError(
           "The inspection ID is missing. Please upload the images again."
@@ -55,22 +64,24 @@ function Processing() {
       }
 
       try {
-        const response = await api.get(`/api/inspections/${id}`);
+        const response = await api.get(
+          `/api/inspections/${id}`
+        );
+
         const inspection = response.data;
 
-        // Stop if the user left the page while the request was running.
+        // Stop if the user left while the request was running.
         if (!isActive) {
           return;
         }
 
-        // The inspection was completed successfully.
+        // Continue to Results after successful completion.
         if (inspection.status === "completed") {
           stopPolling();
 
           setProgress(100);
           setCurrentText("Preparing results...");
 
-          // Move to the Results page and preserve the uploaded previews.
           navigate(`/results/${id}`, {
             state: {
               ...images,
@@ -80,14 +91,12 @@ function Processing() {
           return;
         }
 
-        // The ML service or inspection process failed.
+        // Display a plain-language message when analysis fails.
         if (inspection.status === "failed") {
           stopPolling();
 
           setError(
-            inspection.error ||
-              inspection.error_message ||
-              "The analysis failed because the AI service is currently unavailable. Please try uploading the images again."
+            "The inspection could not be completed. Please upload the images again."
           );
 
           setCurrentText("Processing stopped.");
@@ -95,54 +104,69 @@ function Processing() {
         }
 
         // The inspection is still pending or processing.
-        // Increase only the visual progress and never reach 100% here.
+        // Increase only the visual progress and keep it below 100%.
         setProgress((previousProgress) =>
           Math.min(previousProgress + 20, 90)
         );
 
-        setCurrentText("Detecting suspected changes...");
+        setCurrentText(
+          "Detecting suspected changes..."
+        );
 
-        // Run the next status check after two seconds.
-        pollingTimeout = setTimeout(checkStatus, 2000);
+        // Check the status again after two seconds.
+        pollingTimeout = setTimeout(
+          checkStatus,
+          2000
+        );
       } catch (err) {
-        console.error("Failed to check inspection status:", err);
+        // Keep the full technical error only in the browser console.
+        console.error(
+          "Failed to check inspection status:",
+          err
+        );
 
-        // Stop polling when the backend request itself fails.
         stopPolling();
 
         if (!isActive) {
           return;
         }
 
-        // Use the backend message when available.
-        const backendMessage =
-          err.response?.data?.message ||
-          err.response?.data?.error;
-
-        setError(
-          backendMessage ||
-            "Unable to check the inspection status. Please try again."
-        );
+        // Display only controlled, user-friendly messages.
+        if (err.response?.status === 404) {
+          setError(
+            "The inspection could not be found. Please upload the images again."
+          );
+        } else if (err.response?.status === 403) {
+          setError(
+            "You do not have permission to view this inspection."
+          );
+        } else {
+          setError(
+            "We could not check the inspection status. Please try again."
+          );
+        }
 
         setCurrentText("Processing stopped.");
       }
     };
 
-    // Begin checking immediately when the page opens.
+    // Begin checking the status immediately.
     checkStatus();
 
-    // Clean up the timer when leaving the page.
+    // Cancel polling and prevent updates after leaving the page.
     return () => {
       isActive = false;
       stopPolling();
     };
-  }, [id, navigate]);
+  }, [id, navigate, images]);
 
   return (
     <div className="processing-page">
       <div className="processing-card">
         <h1>
-          {error ? "Processing Failed" : "Processing Images"}
+          {error
+            ? "Processing Failed"
+            : "Processing Images"}
         </h1>
 
         <p>
@@ -151,22 +175,30 @@ function Processing() {
             : "Please wait while we analyze the changes."}
         </p>
 
-        {/* Display the processing animation only while there is no error. */}
+        {/* Display the animation only while processing is active. */}
         {!error && (
           <>
             <div
               className="loader-ring"
-              style={{ "--progress": `${progress}%` }}
+              style={{
+                "--progress": `${progress}%`,
+              }}
             >
               <span>{progress}%</span>
             </div>
 
             <h2>Analyzing...</h2>
 
-            <p className="step-text">{currentText}</p>
+            <p className="step-text">
+              {currentText}
+            </p>
 
             <div className="progress-bar">
-              <div style={{ width: `${progress}%` }}></div>
+              <div
+                style={{
+                  width: `${progress}%`,
+                }}
+              ></div>
             </div>
 
             <div className="processing-info">
@@ -180,7 +212,7 @@ function Processing() {
           </>
         )}
 
-        {/* Display a clear failure message and a way forward. */}
+        {/* Display the error and a clear next step. */}
         {error && (
           <div className="processing-error">
             <p>{error}</p>
