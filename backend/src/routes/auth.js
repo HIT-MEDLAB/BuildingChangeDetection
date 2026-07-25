@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const pool = require('../config/db')
+const logger = require('../config/logger');
 const router = express.Router();
 
 
@@ -22,6 +23,7 @@ router.post('/login', async (req, res) => {
 
 
     if (!user) {
+      logger.warn('Login failed: unknown email', { email });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -29,16 +31,29 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
+      logger.warn('Login failed: wrong password', { userId: user.id, email });
       return res.status(401).json({ error: 'Invalid credentials'});
     }
 
+    // US-6: disabled accounts cannot log in, even with a correct password
+    if (user.is_active === false) {
+      logger.warn('Login blocked: account disabled', { userId: user.id, email });
+      return res.status(403).json({ error: 'This account has been disabled' });
+    }
+
     //   4. Generate a JWT token (use jsonwebtoken package)
+    // role is embedded in the token so requireAdmin can check it without an
+    // extra DB round-trip on every request. Tradeoff: revoking admin access
+    // (or disabling a user) takes effect on next login, not immediately for
+    // tokens already issued (tokens expire after 8h).
     const jwtSecret = process.env.JWT_SECRET;
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role },
       jwtSecret,
       { expiresIn: '8h' }
     );
+
+    logger.logUserAction('login', { userId: user.id, email });
 
 //   5. Return the token and user info
     res.status(200).json({
@@ -47,12 +62,13 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role: user.role
       }
     });
 
   } catch (err){
-    console.error('Login error:',err);
+    logger.error('Login error', { message: err.message, stack: err.stack, email });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

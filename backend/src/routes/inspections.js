@@ -8,6 +8,8 @@ const pool = require('../config/db');
 const FormData = require('form-data');
 const fs = require('fs');
 const fetch = require('node-fetch');
+const archiver = require('archiver');
+const logger = require('../config/logger');
 
 //Ensure uploads directory exists on startup
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -100,7 +102,7 @@ router.post('/upload', (req, res, next) => {
 
     } catch (mlErr) {
       // ML call failed - mark inspection as failed and return clear error
-      console.error('ML service error:', mlErr.message);
+      logger.error('ML service error', { message: mlErr.message, inspectionId, userId: req.user.userId });
       await pool.query(
         `UPDATE inspections SET status = 'failed', updated_at = NOW() WHERE id = $1`,
         [inspectionId]
@@ -127,6 +129,8 @@ router.post('/upload', (req, res, next) => {
       [inspectionId]
     );
 
+    logger.logUserAction('upload', { userId: req.user.userId, inspectionId });
+
     res.status(201).json({
       inspectionId,
       status: 'completed',
@@ -134,7 +138,7 @@ router.post('/upload', (req, res, next) => {
     });
 
   } catch (err) {
-    console.error('Upload error:', err);
+    logger.error('Upload error', { message: err.message, stack: err.stack, userId: req.user.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -147,7 +151,7 @@ router.get('/', async (req, res) => {
 
   try {
     const inspectionsResult = await pool.query(
-      `SELECT i.id, i.status, i.created_at, i.notes,
+      `SELECT i.id, i.status, i.case_status, i.created_at, i.notes,
           i.image_before_path, i.image_after_path,
           r.changes_detected
       FROM inspections i
@@ -175,7 +179,7 @@ router.get('/', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Get inspections error:', err);
+    logger.error('Get inspections error', { message: err.message, stack: err.stack, userId: req.user.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -212,6 +216,7 @@ router.get('/:id', async (req, res) => {
   res.status(200).json({
     id: inspection.id,
     status: inspection.status,
+    caseStatus: inspection.case_status,
     createdAt: inspection.created_at,
     notes: inspection.notes,
     images: {
@@ -225,11 +230,143 @@ router.get('/:id', async (req, res) => {
 });
 
   } catch (err) {
-    console.error('Get inspection error:', err);
+    logger.error('Get inspection error', { message: err.message, stack: err.stack, userId: req.user.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
     
+// GET /api/inspections/:id/export
+// US-5: export an inspection's images and case record as a single zip,
+// for handoff to legal/enforcement. Same ownership rule as the PDF report.
+router.get('/:id/export', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const inspectionResult = await pool.query(
+      `SELECT * FROM inspections WHERE id = $1`,
+      [id]
+    );
+
+    const inspection = inspectionResult.rows[0];
+
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection not found' });
+    }
+
+    if (inspection.user_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (!fs.existsSync(inspection.image_before_path) || !fs.existsSync(inspection.image_after_path)) {
+      return res.status(500).json({ error: 'Source images are missing on the server' });
+    }
+
+    const resultsQuery = await pool.query(
+      `SELECT changes_detected, result_data FROM inspection_results WHERE inspection_id = $1`,
+      [id]
+    );
+    const results = resultsQuery.rows[0];
+
+    const record = {
+      id: inspection.id,
+      buildingId: inspection.building_id,
+      status: inspection.status,
+      caseStatus: inspection.case_status,
+      notes: inspection.notes,
+      createdAt: inspection.created_at,
+      results: results ? {
+        changesDetected: results.changes_detected,
+        boundingBoxes: results.result_data?.bounding_boxes || []
+      } : null
+    };
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="inspection-${inspection.id}-export.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', (err) => {
+      logger.error('Export archive error', { message: err.message, inspectionId: id, userId: req.user.userId });
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    archive.pipe(res);
+    archive.append(JSON.stringify(record, null, 2), { name: 'record.json' });
+    archive.file(inspection.image_before_path, { name: `before${path.extname(inspection.image_before_path)}` });
+    archive.file(inspection.image_after_path, { name: `after${path.extname(inspection.image_after_path)}` });
+
+    logger.logUserAction('export', { userId: req.user.userId, inspectionId: id });
+
+    await archive.finalize();
+
+  } catch (err) {
+    logger.error('Export inspection error', { message: err.message, stack: err.stack, userId: req.user.userId });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+const VALID_CASE_STATUSES = ['under_review', 'confirmed', 'dismissed'];
+
+// PATCH /api/inspections/:id/status
+// US-4: inspector classifies a case outcome and can attach a short note.
+// Distinct from `status` (ML processing state) — this is the inspector's
+// enforcement decision.
+router.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { caseStatus, note } = req.body;
+
+  if (!caseStatus || !VALID_CASE_STATUSES.includes(caseStatus)) {
+    return res.status(400).json({
+      error: `caseStatus must be one of: ${VALID_CASE_STATUSES.join(', ')}`
+    });
+  }
+
+  try {
+    const inspectionResult = await pool.query(
+      `SELECT id, user_id FROM inspections WHERE id = $1`,
+      [id]
+    );
+
+    const inspection = inspectionResult.rows[0];
+
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection not found' });
+    }
+
+    if (inspection.user_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const result = await pool.query(
+      `UPDATE inspections
+       SET case_status = $1, notes = COALESCE($2, notes), updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, case_status, notes, updated_at`,
+      [caseStatus, note ?? null, id]
+    );
+
+    const updated = result.rows[0];
+
+    logger.logUserAction('status_change', {
+      userId: req.user.userId, inspectionId: id, caseStatus: updated.case_status
+    });
+
+    res.status(200).json({
+      id: updated.id,
+      caseStatus: updated.case_status,
+      notes: updated.notes,
+      updatedAt: updated.updated_at
+    });
+
+  } catch (err) {
+    logger.error('Update case status error', { message: err.message, stack: err.stack, userId: req.user.userId });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // DELETE /api/inspections/:id
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
@@ -255,10 +392,12 @@ router.delete('/:id', async (req, res) => {
     // Delete inspection - results cascade automatically (ON DELETE CASCADE)
     await pool.query(`DELETE FROM inspections WHERE id = $1`, [id]);
 
+    logger.logUserAction('delete_inspection', { userId: req.user.userId, inspectionId: id });
+
     res.status(200).json({ message: 'Inspection deleted successfully' });
 
   } catch (err) {
-    console.error('Delete inspection error:', err);
+    logger.error('Delete inspection error', { message: err.message, stack: err.stack, userId: req.user.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

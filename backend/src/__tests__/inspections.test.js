@@ -75,3 +75,126 @@ describe('DELETE /api/inspections/:id', () => {
     expect(res.body.error).toBe('Forbidden');
   });
 });
+
+describe('PATCH /api/inspections/:id/status', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('returns 401 if no token provided', async () => {
+    const res = await request(app)
+      .patch('/api/inspections/1/status')
+      .send({ caseStatus: 'confirmed' });
+
+    expect(res.status).toBe(401);
+  });
+
+  test('returns 400 for an invalid caseStatus value', async () => {
+    const res = await request(app)
+      .patch('/api/inspections/1/status')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({ caseStatus: 'archived' });
+
+    expect(res.status).toBe(400);
+  });
+
+  test('returns 404 if inspection not found', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .patch('/api/inspections/999/status')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({ caseStatus: 'confirmed' });
+
+    expect(res.status).toBe(404);
+  });
+
+  test('returns 403 if inspection belongs to another user', async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{ id: 1, user_id: 999 }]
+    });
+
+    const res = await request(app)
+      .patch('/api/inspections/1/status')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({ caseStatus: 'confirmed' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('Forbidden');
+  });
+
+  test('updates the case status for the owner', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 1, user_id: 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, case_status: 'confirmed', notes: 'Looks like an unpermitted extension', updated_at: '2026-07-18' }]
+      });
+
+    const res = await request(app)
+      .patch('/api/inspections/1/status')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send({ caseStatus: 'confirmed', note: 'Looks like an unpermitted extension' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.caseStatus).toBe('confirmed');
+  });
+});
+
+describe('GET /api/inspections/:id/export', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('returns 401 if no token provided', async () => {
+    const res = await request(app).get('/api/inspections/1/export');
+    expect(res.status).toBe(401);
+  });
+
+  test('returns 404 if inspection not found', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .get('/api/inspections/999/export')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  test('returns 403 if inspection belongs to another user', async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{ id: 1, user_id: 999, image_before_path: __filename, image_after_path: __filename }]
+    });
+
+    const res = await request(app)
+      .get('/api/inspections/1/export')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  test('streams a zip for the owner', async () => {
+    const path = require('path');
+    const fixtureImage = path.join(__dirname, 'fixtures', 'test-image.png');
+
+    pool.query
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 1, user_id: 1, building_id: 'B-42', status: 'completed',
+          case_status: 'confirmed', notes: 'test note', created_at: '2026-07-18T00:00:00Z',
+          image_before_path: fixtureImage, image_after_path: fixtureImage
+        }]
+      })
+      .mockResolvedValueOnce({
+        rows: [{ changes_detected: true, result_data: { bounding_boxes: [] } }]
+      });
+
+    const res = await request(app)
+      .get('/api/inspections/1/export')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('application/zip');
+    // PK is the zip local file header magic number
+    expect(res.text.slice(0, 2)).toBe('PK');
+  });
+});
