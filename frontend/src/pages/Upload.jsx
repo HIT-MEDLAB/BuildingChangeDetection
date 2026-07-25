@@ -4,19 +4,31 @@ import api from "../api";
 import "./Upload.css";
 
 function Upload() {
+  // Stores the selected image files.
   const [beforeImage, setBeforeImage] = useState(null);
   const [afterImage, setAfterImage] = useState(null);
+
+  // Stores local preview URLs for the selected images.
   const [beforePreview, setBeforePreview] = useState("");
   const [afterPreview, setAfterPreview] = useState("");
+
+  // Stores a user-friendly error message.
   const [error, setError] = useState("");
+
+  // Prevents multiple submissions while the upload request is running.
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // Validates the selected file and creates a local preview for the user
+  // The submit button stays disabled until both images are selected.
+  // It also remains disabled while the upload request is running.
+  const isSubmitDisabled = !beforeImage || !afterImage || loading;
+
+  // Validates the selected file and creates a local preview for the user.
   const handleFile = (file, type) => {
     if (!file) return;
 
+    // Reject files that are not images.
     if (!file.type.startsWith("image/")) {
       setError("Only image files are allowed");
       return;
@@ -24,6 +36,7 @@ function Upload() {
 
     const reader = new FileReader();
 
+    // Save the selected file and its preview after reading is complete.
     reader.onloadend = () => {
       if (type === "before") {
         setBeforeImage(file);
@@ -39,18 +52,19 @@ function Upload() {
     reader.readAsDataURL(file);
   };
 
-  // Handles drag and drop upload
-  const handleDrop = (e, type) => {
-    e.preventDefault();
-    handleFile(e.dataTransfer.files[0], type);
+  // Handles image files dropped into an upload area.
+  const handleDrop = (event, type) => {
+    event.preventDefault();
+    handleFile(event.dataTransfer.files[0], type);
   };
 
-  // Sends both images to the backend as multipart/form-data
+  // Sends both images to the backend as multipart/form-data.
   const handleSubmit = async () => {
-    if (!beforeImage || !afterImage) {
-      setError("Please upload both before and after images");
-      return;
-    }
+    // Safety check - this should never happen because
+// the Submit button stays disabled until both images are selected.
+if (!beforeImage || !afterImage) {
+  return;
+}
 
     setError("");
     setLoading(true);
@@ -58,19 +72,25 @@ function Upload() {
     try {
       const formData = new FormData();
 
-      // Field names must match Yair's multer configuration in the backend
+      // Field names must match the Multer configuration in the backend.
       formData.append("imageBefore", beforeImage);
       formData.append("imageAfter", afterImage);
 
-      const response = await api.post("/api/inspections/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await api.post(
+        "/api/inspections/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      // Backend returns inspectionId after creating the inspection record
-      const inspectionId = response.data.inspectionId || response.data.id;
+      // The backend returns the inspection ID after creating the record.
+      const inspectionId =
+        response.data.inspectionId || response.data.id;
 
+      // Continue to the processing step after a successful upload.
       navigate(`/processing/${inspectionId}`, {
         state: {
           inspectionId,
@@ -79,6 +99,7 @@ function Upload() {
         },
       });
     } catch (err) {
+      // Display a plain-language message instead of a technical error.
       setError(
         err.response?.data?.message ||
           err.response?.data?.error ||
@@ -97,7 +118,7 @@ function Upload() {
         Upload before and after images of the same location to detect changes.
       </p>
 
-      {/* Visual progress steps for the inspection flow */}
+      {/* Visual progress steps for the inspection flow. */}
       <div className="upload-steps">
         <div className="step active">1</div>
         <div className="line"></div>
@@ -113,13 +134,14 @@ function Upload() {
       </div>
 
       <div className="upload-grid">
+        {/* Before-image upload area. */}
         <div>
           <h2>1. Upload Before Image</h2>
 
           <div
             className="upload-box"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, "before")}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleDrop(event, "before")}
           >
             {beforePreview ? (
               <img src={beforePreview} alt="Before preview" />
@@ -134,8 +156,8 @@ function Upload() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) =>
-                      handleFile(e.target.files[0], "before")
+                    onChange={(event) =>
+                      handleFile(event.target.files[0], "before")
                     }
                   />
                 </label>
@@ -146,13 +168,14 @@ function Upload() {
           </div>
         </div>
 
+        {/* After-image upload area. */}
         <div>
           <h2>2. Upload After Image</h2>
 
           <div
             className="upload-box"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, "after")}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleDrop(event, "after")}
           >
             {afterPreview ? (
               <img src={afterPreview} alt="After preview" />
@@ -167,8 +190,8 @@ function Upload() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) =>
-                      handleFile(e.target.files[0], "after")
+                    onChange={(event) =>
+                      handleFile(event.target.files[0], "after")
                     }
                   />
                 </label>
@@ -180,13 +203,15 @@ function Upload() {
         </div>
       </div>
 
+      {/* Show an error only when one exists. */}
       {error && <p className="upload-error">{error}</p>}
 
+      {/* The button is unavailable until both images are selected. */}
       <button
         type="button"
         className="upload-button"
         onClick={handleSubmit}
-        disabled={loading}
+        disabled={isSubmitDisabled}
       >
         {loading ? "Uploading..." : "Submit Images"}
       </button>
