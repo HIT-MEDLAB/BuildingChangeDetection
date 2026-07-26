@@ -6,8 +6,11 @@ and returns detected changes between them. Currently returns mock data —
 students will integrate the actual Tiny-CD model.
 """
 
+import io
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image, UnidentifiedImageError
 
 app = FastAPI(
     title="BCD ML Service",
@@ -57,6 +60,41 @@ async def predict(
                 status_code=400,
                 detail=f"File '{img.filename}' is not an image (got {img.content_type})",
             )
+
+    # NFR-REL-01 / REQ-CORE-06: gracefully handle incompatible images —
+    # corrupt files, or a pair the model can't reasonably compare — instead
+    # of crashing or letting bad data reach the "model".
+    before_bytes = await image_before.read()
+    after_bytes = await image_after.read()
+
+    sizes = {}
+    for label, data, upload in [("before", before_bytes, image_before), ("after", after_bytes, image_after)]:
+        try:
+            with Image.open(io.BytesIO(data)) as im:
+                im.verify()
+            # verify() invalidates the image object per Pillow docs — reopen to read .size
+            with Image.open(io.BytesIO(data)) as im:
+                sizes[label] = im.size
+        except (UnidentifiedImageError, OSError):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Comparison failed - '{upload.filename}' could not be read (corrupt or unsupported image data)",
+            )
+
+    # Reject pairs the model can't meaningfully compare: wildly different
+    # aspect ratios usually mean different camera angles/framing, not a
+    # detectable change at the same location.
+    before_w, before_h = sizes["before"]
+    after_w, after_h = sizes["after"]
+    before_ratio = before_w / before_h
+    after_ratio = after_w / after_h
+    ratio_diff = abs(before_ratio - after_ratio) / before_ratio
+
+    if ratio_diff > 0.25:
+        raise HTTPException(
+            status_code=422,
+            detail="Comparison failed - camera angles are too different between the two images",
+        )
 
     # --- MOCK RESPONSE ---
     # TODO: Replace with actual Tiny-CD inference
