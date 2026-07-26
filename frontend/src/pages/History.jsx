@@ -3,115 +3,71 @@ import { FaDownload } from "react-icons/fa";
 import api from "../api";
 import "./History.css";
 
-// Backend base URL.
-// If VITE_API_URL exists in the .env file, it will be used.
-// Otherwise, the local backend server on port 3000 will be used.
+// Backend base URL used for displaying uploaded images.
+// If VITE_API_URL exists, it is used; otherwise, localhost is used.
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function History() {
-  // Controls the sorting order of the inspection history.
-  // The default order displays the newest inspections first.
-  const [sortOrder, setSortOrder] = useState("newest");
+  // Controls the current sorting method.
+  // Priority is the default because US-1 requires important cases first.
+  const [sortOrder, setSortOrder] = useState("priority");
 
-  // Stores the inspection history received from the backend.
+  // Stores the inspection history returned by the backend.
   const [history, setHistory] = useState([]);
 
-  // Indicates whether the inspection history is still loading.
+  // Indicates whether inspection history is still loading.
   const [loading, setLoading] = useState(true);
 
-  // Stores an error message if loading the history fails.
+  // Stores a user-friendly loading error.
   const [error, setError] = useState("");
 
-  // Stores the ID of the inspection whose report is being downloaded.
+  // Stores the inspection ID whose PDF is currently being prepared.
   const [downloadingReportId, setDownloadingReportId] =
     useState(null);
 
-  // Stores the ID of the inspection whose report download failed.
+  // Stores the inspection ID whose report download failed.
   const [reportErrorId, setReportErrorId] = useState(null);
 
-  // Stores the PDF report download error message.
+  // Stores the report download error message.
   const [reportError, setReportError] = useState("");
 
   useEffect(() => {
-    // Prevents state updates after the component is removed.
-    let isActive = true;
-
-    // Loads the inspection history from the backend.
+    // Loads the authenticated user's inspection history.
     const fetchHistory = async () => {
       try {
-        // Starts the loading state and clears previous errors.
         setLoading(true);
         setError("");
 
-        // Sends a GET request for the user's inspections.
         const response = await api.get("/api/inspections");
 
-        // Supports both possible backend response structures:
-        // { inspections: [...] } or a direct array response.
-        const inspections = Array.isArray(
-          response.data?.inspections
-        )
-          ? response.data.inspections
-          : Array.isArray(response.data)
-            ? response.data
-            : [];
+        // Support both a wrapped inspections array and a direct array.
+        const inspections =
+          response.data.inspections ||
+          (Array.isArray(response.data) ? response.data : []);
 
-        // Stops if the user left the page while the request was running.
-        if (!isActive) {
-          return;
-        }
-
-        // Stores the inspection history.
         setHistory(inspections);
       } catch (err) {
-        // Logs the complete error for development and debugging.
-        console.error(
-          "Failed to load inspection history:",
-          err
-        );
+        console.error("Failed to load inspection history:", err);
 
-        if (!isActive) {
-          return;
-        }
-
-        // Uses the backend error message when available.
-        const backendMessage =
-          err.response?.data?.message ||
-          err.response?.data?.error;
-
-        // Displays a clear error message to the user.
         setError(
-          backendMessage ||
-            "Failed to load inspection history"
+          "We could not load your inspection history. Please try again."
         );
       } finally {
-        // Ends the loading state only if the page is still active.
-        if (isActive) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
-    // Loads the history when the page opens.
     fetchHistory();
-
-    // Prevents state updates after leaving the page.
-    return () => {
-      isActive = false;
-    };
   }, []);
 
-  // Downloads the PDF report for a specific inspection.
+  // Downloads a PDF report for a specific inspection.
   const handleDownloadReport = async (inspectionId) => {
     try {
-      // Starts the download state and clears previous errors.
       setDownloadingReportId(inspectionId);
       setReportError("");
       setReportErrorId(null);
 
-      // Requests the PDF report from the backend.
-      // Blob is required because the response is a file.
       const response = await api.get(
         `/api/report/${inspectionId}`,
         {
@@ -119,44 +75,29 @@ function History() {
         }
       );
 
-      // Creates a Blob object that represents the PDF file.
       const pdfBlob = new Blob([response.data], {
         type: "application/pdf",
       });
 
-      // Creates a temporary browser URL for the file.
       const downloadUrl =
         window.URL.createObjectURL(pdfBlob);
 
-      // Creates a temporary link element.
       const link = document.createElement("a");
 
-      // Sets the temporary file URL.
       link.href = downloadUrl;
-
-      // Defines the downloaded PDF file name.
       link.download =
         `inspection-${inspectionId}-summary-report.pdf`;
 
-      // Adds the temporary link to the page.
       document.body.appendChild(link);
-
-      // Starts the download automatically.
       link.click();
-
-      // Removes the temporary link from the page.
       link.remove();
 
-      // Releases the temporary browser URL from memory.
       window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
-      // Logs the error for development and debugging.
       console.error("Failed to download report:", err);
 
-      // Stores the ID of the row where the error occurred.
       setReportErrorId(inspectionId);
 
-      // Displays an appropriate message based on the response status.
       if (err.response?.status === 404) {
         setReportError(
           "The report is not available for this inspection."
@@ -167,23 +108,26 @@ function History() {
         );
       } else {
         setReportError(
-          "Failed to download the report. Please try again."
+          "We could not download the report. Please try again."
         );
       }
     } finally {
-      // Ends the report download state.
       setDownloadingReportId(null);
     }
   };
 
-  // Converts the case status into readable text
-  // and returns the matching CSS class.
-  const getCaseStatusDetails = (item) => {
-    // Supports both camelCase and snake_case backend fields.
-    const caseStatus =
+  // Returns the normalized case status value.
+  const getCaseStatus = (item) => {
+    return (
       item.caseStatus ||
       item.case_status ||
-      "under_review";
+      "under_review"
+    );
+  };
+
+  // Converts the stored case status into visible text and a CSS class.
+  const getCaseStatusDetails = (item) => {
+    const caseStatus = getCaseStatus(item);
 
     if (caseStatus === "confirmed") {
       return {
@@ -205,57 +149,57 @@ function History() {
     };
   };
 
-  // Converts the inspection result into readable text.
-  const getResultDetails = (item) => {
-    // A failed inspection must always be displayed as Failed.
-    // This check happens before checking changes_detected.
-    if (item.status === "failed") {
-      return {
-        text: "Failed",
-        className: "failed-result",
-      };
+  // Returns a numeric priority value for an inspection.
+  // A lower number means that the inspection is more important.
+  const getInspectionPriority = (item) => {
+    const caseStatus = getCaseStatus(item);
+
+    // A detected change that still requires inspector review
+    // is the highest-priority case.
+    if (
+      item.changes_detected === true &&
+      caseStatus === "under_review"
+    ) {
+      return 1;
     }
 
-    // Displays detected changes for a completed inspection.
-    if (item.changes_detected === true) {
-      return {
-        text: "Change Detected",
-        className: "change",
-      };
+    // Confirmed detected changes remain important,
+    // but they have already been reviewed.
+    if (
+      item.changes_detected === true &&
+      caseStatus === "confirmed"
+    ) {
+      return 2;
     }
 
-    // Displays no changes for a completed inspection.
-    if (item.changes_detected === false) {
-      return {
-        text: "No Change Detected",
-        className: "no-change",
-      };
-    }
-
-    // Displays the current processing status if results are not ready.
+    // Inspections still being processed or waiting for a result
+    // should remain visible near the top.
     if (
       item.status === "pending" ||
       item.status === "processing"
     ) {
-      return {
-        text:
-          item.status === "processing"
-            ? "Processing"
-            : "Pending",
-        className: "pending",
-      };
+      return 3;
     }
 
-    // Provides a safe fallback for missing result information.
-    return {
-      text: item.status || "Pending",
-      className: "pending",
-    };
+    // Detected changes that were dismissed are already resolved.
+    if (
+      item.changes_detected === true &&
+      caseStatus === "dismissed"
+    ) {
+      return 4;
+    }
+
+    // Inspections without detected changes require less attention.
+    if (item.changes_detected === false) {
+      return 5;
+    }
+
+    // Failed or incomplete records are placed last.
+    return 6;
   };
 
-  // Creates a copy of the history array and sorts it by date.
+  // Sorts inspections according to the selected sorting method.
   const sortedHistory = [...history].sort((a, b) => {
-    // Uses zero as a fallback if a creation date is missing.
     const firstDate = a.created_at
       ? new Date(a.created_at).getTime()
       : 0;
@@ -264,13 +208,27 @@ function History() {
       ? new Date(b.created_at).getTime()
       : 0;
 
-    // Sorts from newest to oldest or from oldest to newest.
+    // Prioritize important cases first.
+    // Cases with the same priority are ordered newest first.
+    if (sortOrder === "priority") {
+      const priorityDifference =
+        getInspectionPriority(a) -
+        getInspectionPriority(b);
+
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return secondDate - firstDate;
+    }
+
+    // Sort only by date when the user selects a chronological option.
     return sortOrder === "newest"
       ? secondDate - firstDate
       : firstDate - secondDate;
   });
 
-  // Displays a loading message while waiting for the backend.
+  // Displays a loading state while the history request is running.
   if (loading) {
     return (
       <div className="history-page">
@@ -285,31 +243,38 @@ function History() {
 
   return (
     <div className="history-page">
-      {/* Page title */}
       <h1>Inspection History</h1>
 
       <p>View all your saved inspection results.</p>
 
-      {/* Displays an error if loading the history failed */}
       {error ? (
         <div className="history-error">
           <h3>Unable to load history</h3>
 
-          <p>{error}. Please try again later.</p>
+          <p>{error}</p>
         </div>
       ) : history.length === 0 ? (
-        // Displays an empty state if no inspections exist.
         <div className="empty-history">
           <h3>No inspections yet</h3>
 
-          <p>
-            Your uploaded inspections will appear here.
-          </p>
+          <p>Your uploaded inspections will appear here.</p>
         </div>
       ) : (
         <>
-          {/* Date sorting buttons */}
+          {/* Sorting controls. */}
           <div className="history-sort">
+            <button
+              type="button"
+              onClick={() => setSortOrder("priority")}
+              className={
+                sortOrder === "priority"
+                  ? "active-sort"
+                  : ""
+              }
+            >
+              Priority First
+            </button>
+
             <button
               type="button"
               onClick={() => setSortOrder("newest")}
@@ -335,7 +300,7 @@ function History() {
             </button>
           </div>
 
-          {/* Allows horizontal scrolling on smaller screens */}
+          {/* Allows horizontal scrolling on smaller screens. */}
           <div className="history-table-wrapper">
             <table className="history-table">
               <thead>
@@ -351,30 +316,39 @@ function History() {
 
               <tbody>
                 {sortedHistory.map((item) => {
-                  // Gets the readable inspection result and CSS class.
-                  const resultDetails =
-                    getResultDetails(item);
+                  // Converts backend result values into plain-language text.
+                  const resultText =
+                    item.status === "failed"
+                      ? "Failed"
+                      : item.changes_detected === true
+                        ? "Change Detected"
+                        : item.changes_detected === false
+                          ? "No Change Detected"
+                          : item.status || "Pending";
 
-                  // Gets the readable case status and CSS class.
+                  // Selects the existing CSS class for the result.
+                  const resultClass =
+                    resultText === "Change Detected"
+                      ? "change"
+                      : resultText ===
+                          "No Change Detected"
+                        ? "no-change"
+                        : resultText === "Failed"
+                          ? "failed-result"
+                          : "pending";
+
                   const caseStatusDetails =
                     getCaseStatusDetails(item);
 
-                  // Checks whether this row's report is downloading.
                   const isDownloading =
                     downloadingReportId === item.id;
 
-                  // Checks whether the report error belongs to this row.
                   const hasReportError =
                     reportErrorId === item.id &&
-                    Boolean(reportError);
-
-                  // A failed inspection cannot generate a valid report.
-                  const isFailed =
-                    item.status === "failed";
+                    reportError;
 
                   return (
                     <tr key={item.id}>
-                      {/* Inspection creation date */}
                       <td>
                         {item.created_at
                           ? new Date(
@@ -383,7 +357,6 @@ function History() {
                           : "No date"}
                       </td>
 
-                      {/* Before image */}
                       <td>
                         {item.image_before_path ? (
                           <img
@@ -398,7 +371,6 @@ function History() {
                         )}
                       </td>
 
-                      {/* After image */}
                       <td>
                         {item.image_after_path ? (
                           <img
@@ -413,18 +385,12 @@ function History() {
                         )}
                       </td>
 
-                      {/* AI inspection result */}
                       <td>
-                        <span
-                          className={
-                            resultDetails.className
-                          }
-                        >
-                          {resultDetails.text}
+                        <span className={resultClass}>
+                          {resultText}
                         </span>
                       </td>
 
-                      {/* Case status selected by the inspector */}
                       <td>
                         <span
                           className={
@@ -435,19 +401,17 @@ function History() {
                         </span>
                       </td>
 
-                      {/* PDF report download action */}
                       <td>
                         <div className="report-cell">
                           <button
                             type="button"
                             className="history-report-button"
                             onClick={() =>
-                              handleDownloadReport(
-                                item.id
-                              )
+                              handleDownloadReport(item.id)
                             }
                             disabled={
-                              isDownloading || isFailed
+                              isDownloading ||
+                              item.status === "failed"
                             }
                           >
                             <FaDownload />
@@ -459,7 +423,6 @@ function History() {
                             </span>
                           </button>
 
-                          {/* Displays an error only in the relevant row */}
                           {hasReportError && (
                             <p
                               className="history-report-error"
@@ -469,8 +432,7 @@ function History() {
                             </p>
                           )}
 
-                          {/* Failed inspections do not have reports */}
-                          {isFailed && (
+                          {item.status === "failed" && (
                             <p className="report-unavailable">
                               Report unavailable
                             </p>
