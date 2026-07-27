@@ -100,10 +100,12 @@ Retrieve a paginated list of past inspections for the authenticated user.
     {
       "id": 42,
       "status": "completed",
+      "caseStatus": "under_review",
       "created_at": "2026-07-12T10:30:00Z",
       "notes": null,
       "image_before_path": "uploads/abc123.jpg",
       "image_after_path": "uploads/def456.jpg",
+      "processed_image_path": "uploads/9c1e2f-processed.png",
       "changes_detected": true
     }
   ],
@@ -114,6 +116,8 @@ Retrieve a paginated list of past inspections for the authenticated user.
   }
 }
 ```
+
+**Note:** `caseStatus` is camelCase here to match the detail endpoint below (as of the Jul 27 gap-closure week, this previously returned `case_status` — fixed for consistency). Other fields on this list endpoint remain snake_case (`created_at`, `image_before_path`, `image_after_path`, `processed_image_path`, `changes_detected`) matching the raw column names; `processed_image_path` is `null` for inspections created before migration 003 or if processed-image generation failed for that inspection.
 
 **Error Responses:**
 
@@ -143,7 +147,8 @@ Retrieve a single inspection with its full results.
   "notes": null,
   "images": {
     "before": "uploads/abc123.jpg",
-    "after": "uploads/def456.jpg"
+    "after": "uploads/def456.jpg",
+    "processed": "uploads/9c1e2f-processed.png"
   },
   "results": {
     "changesDetected": true,
@@ -159,6 +164,7 @@ Retrieve a single inspection with its full results.
 - `status` can be: `pending`, `completed`, `failed`
 - `results` is `null` if status is not `completed`
 - `boundingBoxes` coordinates are in **pixels** relative to the original image dimensions
+- `images.processed` (REQ-CORE-03/04/05) is the server-generated copy of the "after" image with the detected-change boxes drawn on top as a high-contrast overlay. It is `null` for inspections created before migration 003, or if generation failed for that specific inspection (non-fatal — the rest of the inspection still completes normally).
 
 **Error Responses:**
 
@@ -239,7 +245,7 @@ REQ-REP-01/REQ-REP-02. Generates a PDF report for a single inspection and stream
 
 **Success Response (200):** `application/pdf` binary stream, `Content-Disposition: attachment; filename="inspection-<id>-report.pdf"`.
 
-Report contents: inspector name/email, date, reference (`#id` + `buildingId` if set), case status, reference & current image thumbnails, a full-page rendering of the current image with detected-change bounding boxes drawn on top, and a one-line textual conclusion.
+Report contents: inspector name/email, date, reference (`#id` + `buildingId` if set), case status, reference & current image thumbnails, a full-page rendering of the processed (result) image — the stored file from REQ-CORE-03 when available, so the report and `images.processed` from `GET /api/inspections/:id` always show identical boxes — and a one-line textual conclusion.
 
 **Error Responses:**
 

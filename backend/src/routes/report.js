@@ -7,6 +7,7 @@ const router = express.Router();
 const authenticate = require('../middleware/authenticate');
 const pool = require('../config/db');
 const logger = require('../config/logger');
+const { OVERLAY_COLOR } = require('../utils/imageOverlay');
 
 router.use(authenticate);
 
@@ -21,6 +22,7 @@ router.get('/:id', async (req, res) => {
     const inspectionResult = await pool.query(
       `SELECT i.id, i.user_id, i.building_id, i.status, i.case_status,
               i.notes, i.created_at, i.image_before_path, i.image_after_path,
+              i.processed_image_path,
               u.name AS user_name, u.email AS user_email
        FROM inspections i
        JOIN users u ON u.id = i.user_id
@@ -93,17 +95,24 @@ router.get('/:id', async (req, res) => {
     const thumbHeightEstimate = thumbWidth; // safe upper bound for spacing
     doc.y = thumbY + 16 + thumbHeightEstimate + 20;
 
-    // Large processed image: the "after" image with the detected
-    // change regions drawn on top as a high-contrast overlay (REQ-CORE-03
-    // is normally the ML/backend's job at inference time; since the mock
-    // ML service only returns bounding boxes today, we render the overlay
-    // here at report time from the same box data used on the results page).
+    // Large processed image: REQ-CORE-03 generates this once, at upload
+    // time, as a real stored file (backend/src/utils/imageOverlay.js) — the
+    // same file returned to the client at GET /api/inspections/:id
+    // (REQ-CORE-05). Embed that exact file here so the report and the
+    // standalone processed image can never show different boxes. Only for
+    // inspections that predate migration 003, or where generation failed at
+    // upload time, do we fall back to drawing the boxes live from the same
+    // box data (using the same OVERLAY_COLOR the shared module uses).
     doc.addPage();
     doc.fontSize(14).text('Processed Image — Detected Changes', { align: 'center' });
     doc.moveDown();
 
     const pageWidth = doc.page.width - 100;
-    const img = doc.openImage(inspection.image_after_path);
+    const hasStoredProcessedImage = inspection.processed_image_path
+      && fs.existsSync(inspection.processed_image_path);
+    const img = doc.openImage(
+      hasStoredProcessedImage ? inspection.processed_image_path : inspection.image_after_path
+    );
     const displayWidth = pageWidth;
     const scale = displayWidth / img.width;
     const imgX = 50;
@@ -111,16 +120,18 @@ router.get('/:id', async (req, res) => {
 
     doc.image(img, imgX, imgY, { width: displayWidth });
 
-    doc.lineWidth(2).strokeColor('#ff2d55');
-    for (const box of boundingBoxes) {
-      doc.rect(
-        imgX + box.x * scale,
-        imgY + box.y * scale,
-        box.w * scale,
-        box.h * scale
-      ).stroke();
+    if (!hasStoredProcessedImage) {
+      doc.lineWidth(2).strokeColor(OVERLAY_COLOR);
+      for (const box of boundingBoxes) {
+        doc.rect(
+          imgX + box.x * scale,
+          imgY + box.y * scale,
+          box.w * scale,
+          box.h * scale
+        ).stroke();
+      }
+      doc.strokeColor('black');
     }
-    doc.strokeColor('black');
 
     // pdfkit does not advance the text cursor (doc.y) for doc.image() calls
     // the way it does for doc.text() — so without this, the conclusion text

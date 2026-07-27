@@ -87,4 +87,40 @@ describe('GET /api/report/:id', () => {
     expect(res.headers['content-type']).toBe('application/pdf');
     expect(res.body.slice(0, 4).toString()).toBe('%PDF');
   });
+
+  test('embeds the stored processed image (REQ-CORE-03) when one exists, instead of drawing boxes live', async () => {
+    pool.query
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 2,
+          user_id: 1,
+          building_id: 'B-43',
+          status: 'completed',
+          case_status: 'confirmed',
+          notes: null,
+          created_at: '2026-07-27T00:00:00Z',
+          image_before_path: fixtureImage,
+          image_after_path: fixtureImage,
+          // Reusing the fixture as a stand-in "processed image" file - the
+          // report route only needs it to exist and be readable as an image.
+          processed_image_path: fixtureImage,
+          user_name: 'Yair Katsav',
+          user_email: 'yair@medlab.hit.ac.il'
+        }]
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          changes_detected: true,
+          result_data: { bounding_boxes: [{ x: 10, y: 10, w: 20, h: 20 }] }
+        }]
+      });
+
+    const res = await request(app)
+      .get('/api/report/2')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('application/pdf');
+    expect(res.body.slice(0, 4).toString()).toBe('%PDF');
+  });
 });

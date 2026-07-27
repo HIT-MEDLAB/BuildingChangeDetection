@@ -10,6 +10,7 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const archiver = require('archiver');
 const logger = require('../config/logger');
+const { generateProcessedImage } = require('../utils/imageOverlay');
 
 //Ensure uploads directory exists on startup
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -162,17 +163,38 @@ router.post('/upload', (req, res, next) => {
       });
     }
 
-    // 3. Save ML results and mark completed
+    // 3. REQ-CORE-03: generate the processed (result) image on the server —
+    // the "after" image with the detected-change boxes drawn on top as a
+    // real stored artifact, not just something rendered inside the PDF.
+    // Reuses the same overlay module/color the PDF report uses (see
+    // backend/src/utils/imageOverlay.js) so the two can't visually drift
+    // apart. Non-fatal on failure: a working detection with no processed
+    // image is a smaller problem than failing the whole upload over it.
+    let processedImagePath = null;
+    try {
+      const processedFilename = `${uuidv4()}.png`;
+      const outputPath = path.join(uploadsDir, processedFilename);
+      await generateProcessedImage(imageAfterPath, mlResult.bounding_boxes, outputPath);
+      processedImagePath = path.join('uploads', processedFilename);
+    } catch (imgErr) {
+      logger.error('Processed image generation failed', {
+        message: imgErr.message, inspectionId, userId: req.user.userId
+      });
+    }
+
+    // 4. Save ML results and mark completed
     await pool.query(
       `INSERT INTO inspection_results (inspection_id, changes_detected, result_data)
       VALUES ($1, $2, $3)`,
       [inspectionId, mlResult.changes_detected, JSON.stringify(mlResult)]
     );
 
+    // REQ-CORE-04/05: persist the processed image path so history/detail
+    // responses can return it to the client for display.
     await pool.query(
-      `UPDATE inspections SET status = 'completed', updated_at = NOW()
+      `UPDATE inspections SET status = 'completed', processed_image_path = $2, updated_at = NOW()
       WHERE id = $1`,
-      [inspectionId]
+      [inspectionId, processedImagePath]
     );
 
     logger.logUserAction('upload', { userId: req.user.userId, inspectionId });
@@ -197,8 +219,13 @@ router.get('/', async (req, res) => {
 
   try {
     const inspectionsResult = await pool.query(
-      `SELECT i.id, i.status, i.case_status, i.created_at, i.notes,
-          i.image_before_path, i.image_after_path,
+      // caseStatus is aliased to camelCase here to match the detail endpoint
+      // (GET /:id) - previously this returned the raw column name
+      // (case_status) while the detail endpoint returned caseStatus, forcing
+      // the frontend to check both spellings. processed_image_path is new
+      // (REQ-CORE-04: history must record the Processed/Result Image too).
+      `SELECT i.id, i.status, i.case_status AS "caseStatus", i.created_at, i.notes,
+          i.image_before_path, i.image_after_path, i.processed_image_path,
           r.changes_detected
       FROM inspections i
       LEFT JOIN inspection_results r ON r.inspection_id = i.id
@@ -267,7 +294,11 @@ router.get('/:id', async (req, res) => {
     notes: inspection.notes,
     images: {
       before: inspection.image_before_path,
-      after: inspection.image_after_path
+      after: inspection.image_after_path,
+      // REQ-CORE-05: return the server-generated Processed (Result) Image
+      // for display. null for inspections created before migration 003, or
+      // if generation failed for this one (see upload handler).
+      processed: inspection.processed_image_path
     },
     results: results ? {
       changesDetected: results.changes_detected,
