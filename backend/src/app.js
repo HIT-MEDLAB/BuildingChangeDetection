@@ -6,6 +6,7 @@ const inspectionRoutes = require('./routes/inspections');
 const adminRoutes = require('./routes/admin');
 const reportRoutes = require('./routes/report');
 const errorHandler = require('./middleware/errorHandler');
+const path = require('path');
 
 const app = express();
 
@@ -17,6 +18,14 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// US-2/REQ-CORE-04/05: serve uploaded + processed images so the frontend can
+// actually display image_before_path/image_after_path/processed_image_path
+// (previously nothing served /uploads at all - the paths were being returned
+// by the API but were not reachable by the client). Protection here is by
+// UUID filename (NFR-SEC-01), not per-request auth - consistent with <img>
+// tags not being able to send an Authorization header.
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- Routes ---
 

@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-    "test": "jest"
+  "dev": "node --watch src/server.js",
+  "start": "node src/server.js",
+  "test": "jest --runInBand"
   },
   "jest": {
     "transformIgnorePatterns": [

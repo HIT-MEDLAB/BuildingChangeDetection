@@ -175,7 +175,7 @@ router.post('/upload', (req, res, next) => {
       const processedFilename = `${uuidv4()}.png`;
       const outputPath = path.join(uploadsDir, processedFilename);
       await generateProcessedImage(imageAfterPath, mlResult.bounding_boxes, outputPath);
-      processedImagePath = path.join('uploads', processedFilename);
+      processedImagePath = `uploads/${processedFilename}`;
     } catch (imgErr) {
       logger.error('Processed image generation failed', {
         message: imgErr.message, inspectionId, userId: req.user.userId
