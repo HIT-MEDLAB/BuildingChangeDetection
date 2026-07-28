@@ -8,6 +8,39 @@ import { FaCheckCircle, FaDownload } from "react-icons/fa";
 import api from "../api";
 import "./Results.css";
 
+// Backend base URL used for displaying images stored on the server.
+// If VITE_API_URL exists, it is used.
+// Otherwise, the local backend address is used.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+// Converts an image path returned by the backend into a valid browser URL.
+const buildImageUrl = (imagePath) => {
+  // Returns an empty string when no image path exists.
+  if (!imagePath) {
+    return "";
+  }
+
+  // If the backend already returned a complete URL,
+  // there is no need to add the backend base URL.
+  if (
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://") ||
+    imagePath.startsWith("blob:") ||
+    imagePath.startsWith("data:")
+  ) {
+    return imagePath;
+  }
+
+  // Removes a trailing slash from the base URL.
+  const normalizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+
+  // Removes a leading slash from the image path.
+  const normalizedImagePath = imagePath.replace(/^\//, "");
+
+  return `${normalizedBaseUrl}/${normalizedImagePath}`;
+};
+
 function Results() {
   // Allows access to information passed from the Processing page.
   const location = useLocation();
@@ -57,10 +90,6 @@ function Results() {
     height: 0,
   });
 
-  // Gets the local image previews passed from the Processing page.
-  const beforeImage = location.state?.beforePreview;
-  const afterImage = location.state?.afterPreview;
-
   useEffect(() => {
     // Prevents state updates after the component is removed.
     let isActive = true;
@@ -97,11 +126,14 @@ function Results() {
         // Stores the inspection information.
         setInspection(inspectionData);
 
+        // Supports both camelCase and snake_case backend values.
+        const savedCaseStatus =
+          inspectionData.caseStatus ||
+          inspectionData.case_status ||
+          "under_review";
+
         // Displays the saved case status.
-        // Uses Under Review as the default value.
-        setSelectedCaseStatus(
-          inspectionData.caseStatus || "under_review"
-        );
+        setSelectedCaseStatus(savedCaseStatus);
       } catch (err) {
         // Logs the full error for development and debugging.
         console.error("Failed to load inspection:", err);
@@ -157,12 +189,15 @@ function Results() {
 
       // Uses the selected value if the backend does not return it.
       const updatedCaseStatus =
-        response.data?.caseStatus || selectedCaseStatus;
+        response.data?.caseStatus ||
+        response.data?.case_status ||
+        selectedCaseStatus;
 
       // Updates the local inspection information.
       setInspection((currentInspection) => ({
         ...currentInspection,
         caseStatus: updatedCaseStatus,
+        case_status: updatedCaseStatus,
       }));
 
       // Keeps the select value synchronized with the saved value.
@@ -179,7 +214,7 @@ function Results() {
       // Displays an appropriate message based on the response status.
       if (err.response?.status === 400) {
         setCaseStatusError(
-            "The selected case status is not valid."
+          "The selected case status is not valid."
         );
       } else if (err.response?.status === 403) {
         setCaseStatusError(
@@ -206,7 +241,6 @@ function Results() {
       setReportError("");
 
       // Requests the PDF report from the backend.
-      // The blob response type is required because the response is a file.
       const response = await api.get(`/api/report/${id}`, {
         responseType: "blob",
       });
@@ -321,16 +355,15 @@ function Results() {
 
         <button
           type="button"
-          onClick={() => navigate("/upload")}
+          onClick={() => navigate("/history")}
         >
-          Back to Upload
+          Back to History
         </button>
       </div>
     );
   }
 
   // Handles an inspection that failed during ML processing.
-  // This prevents the page from trying to read missing result data.
   if (inspection.status === "failed") {
     return (
       <div className="results-page">
@@ -363,13 +396,26 @@ function Results() {
         <p className="results-message">
           The inspection is still being processed.
         </p>
+
+        <button
+          type="button"
+          onClick={() => navigate("/history")}
+        >
+          Back to History
+        </button>
       </div>
     );
   }
 
+  // Supports result data returned either inside "results"
+  // or directly on the inspection object.
+  const inspectionResults =
+    inspection.results ||
+    inspection.result ||
+    null;
+
   // Handles a completed inspection that has no result object.
-  // This prevents errors such as reading properties from undefined.
-  if (!inspection.results) {
+  if (!inspectionResults) {
     return (
       <div className="results-page">
         <h1>Results Screen</h1>
@@ -381,21 +427,23 @@ function Results() {
 
         <button
           type="button"
-          onClick={() => navigate("/upload")}
+          onClick={() => navigate("/history")}
         >
-          Back to Upload
+          Back to History
         </button>
       </div>
     );
   }
 
+  // Supports bounding boxes in both camelCase and snake_case.
+  const boundingBoxes =
+    inspectionResults.boundingBoxes ||
+    inspectionResults.bounding_boxes ||
+    [];
+
   // Uses an empty array if bounding-box data is missing or invalid.
-  // This allows the page to display "No changes detected"
-  // instead of crashing.
-  const detectedChanges = Array.isArray(
-    inspection.results.boundingBoxes
-  )
-    ? inspection.results.boundingBoxes
+  const detectedChanges = Array.isArray(boundingBoxes)
+    ? boundingBoxes
     : [];
 
   // Counts the number of detected areas.
@@ -404,23 +452,43 @@ function Results() {
   // Determines whether at least one change was detected.
   const changesDetected = numberOfChanges > 0;
 
-  // The current view uses image previews passed from Processing.
-  // A clear message is displayed if the previews are unavailable.
+  // First preference:
+  // local previews passed from the Processing page.
+  //
+  // Second preference:
+  // image paths loaded from the backend.
+  const beforeImage =
+    location.state?.beforePreview ||
+    buildImageUrl(
+      inspection.image_before_path ||
+        inspection.imageBeforePath ||
+        inspection.beforeImagePath
+    );
+
+  const afterImage =
+    location.state?.afterPreview ||
+    buildImageUrl(
+      inspection.image_after_path ||
+        inspection.imageAfterPath ||
+        inspection.afterImagePath
+    );
+
+  // Displays a clear message only when neither local previews
+  // nor backend image paths are available.
   if (!beforeImage || !afterImage) {
     return (
       <div className="results-page">
         <h1>Results Screen</h1>
 
         <p className="results-message">
-          No image previews are available. Please open the
-          results immediately after uploading the images.
+          The inspection images are not available.
         </p>
 
         <button
           type="button"
-          onClick={() => navigate("/upload")}
+          onClick={() => navigate("/history")}
         >
-          Back to Upload
+          Back to History
         </button>
       </div>
     );
@@ -436,11 +504,13 @@ function Results() {
       };
     }
 
-    // Uses zero as a safe fallback for missing box values.
+    // Supports both width/height naming styles.
     const boxX = Number(box?.x) || 0;
     const boxY = Number(box?.y) || 0;
-    const boxWidth = Number(box?.w) || 0;
-    const boxHeight = Number(box?.h) || 0;
+    const boxWidth =
+      Number(box?.w ?? box?.width) || 0;
+    const boxHeight =
+      Number(box?.h ?? box?.height) || 0;
 
     // Calculates the relative box position and size.
     return {
@@ -454,6 +524,12 @@ function Results() {
       }%`,
     };
   };
+
+  // Gets the current saved case status.
+  const currentCaseStatus =
+    inspection.caseStatus ||
+    inspection.case_status ||
+    "under_review";
 
   return (
     <div className="results-page">
@@ -496,10 +572,7 @@ function Results() {
             id="case-status"
             value={selectedCaseStatus}
             onChange={(event) => {
-              // Stores the newly selected value.
               setSelectedCaseStatus(event.target.value);
-
-              // Clears previous messages after a new selection.
               setCaseStatusSuccess("");
               setCaseStatusError("");
             }}
@@ -524,8 +597,7 @@ function Results() {
             onClick={handleUpdateCaseStatus}
             disabled={
               caseStatusLoading ||
-              selectedCaseStatus ===
-                (inspection.caseStatus || "under_review")
+              selectedCaseStatus === currentCaseStatus
             }
           >
             {caseStatusLoading
@@ -534,17 +606,13 @@ function Results() {
           </button>
         </div>
 
-        {/* Displays the case status currently stored in the backend */}
         <p className="current-case-status">
           Current status:{" "}
           <strong>
-            {getCaseStatusLabel(
-              inspection.caseStatus
-            )}
+            {getCaseStatusLabel(currentCaseStatus)}
           </strong>
         </p>
 
-        {/* Displays a success message after updating the status */}
         {caseStatusSuccess && (
           <p
             className="case-status-success"
@@ -554,7 +622,6 @@ function Results() {
           </p>
         )}
 
-        {/* Displays an error if updating the status fails */}
         {caseStatusError && (
           <p
             className="case-status-error"
@@ -582,7 +649,6 @@ function Results() {
           </span>
         </button>
 
-        {/* Displays an error only when the report download fails */}
         {reportError && (
           <p className="report-error" role="alert">
             {reportError}
@@ -605,14 +671,12 @@ function Results() {
         <div className="image-section">
           <h3>After Image (New State)</h3>
 
-          {/* Relative wrapper used to place boxes over the image */}
           <div className="after-image-wrapper">
             <img
               className="result-image"
               src={afterImage}
               alt="After inspection"
               onLoad={(event) => {
-                // Stores the image's original dimensions.
                 setAfterImageSize({
                   width:
                     event.currentTarget.naturalWidth,
@@ -632,7 +696,6 @@ function Results() {
                   index + 1
                 }`}
               >
-                {/* Displays the number of the detected area */}
                 <span className="box-number">
                   {index + 1}
                 </span>
