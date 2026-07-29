@@ -9,7 +9,7 @@ import {
   import Upload from "./Upload";
   import api from "../api";
   
-  // Mock the navigation function so tests do not change the browser page.
+  // Mock navigation so the test does not change the real browser route.
   const mockNavigate = vi.fn();
   
   vi.mock("react-router-dom", async () => {
@@ -21,18 +21,19 @@ import {
     };
   });
   
-  // Mock the API client so tests do not send real backend requests.
+  // Mock the API client so the tests never contact the real backend.
   vi.mock("../api", () => ({
     default: {
       post: vi.fn(),
     },
   }));
   
-  // Mock FileReader so image previews are created immediately in tests.
+  // Mock FileReader so previews are created immediately and predictably.
   class MockFileReader {
     constructor() {
       this.result = "";
       this.onloadend = null;
+      this.onerror = null;
     }
   
     readAsDataURL(file) {
@@ -44,31 +45,70 @@ import {
     }
   }
   
-  // Creates a valid image file for upload tests.
+  // Creates a valid image file for the upload tests.
   const createImageFile = (
     name = "building.png",
     type = "image/png"
-  ) => {
-    return new File(["mock-image-content"], name, {
+  ) =>
+    new File(["mock-image-content"], name, {
       type,
+    });
+  
+  // Selects an image through the currently displayed Choose File input.
+  const chooseImage = (file) => {
+    const input = screen.getByLabelText("Choose File");
+  
+    fireEvent.change(input, {
+      target: {
+        files: [file],
+      },
     });
   };
   
-  // Returns the two file inputs displayed on the Upload page.
-  const getFileInputs = () => {
-    return screen.getAllByLabelText("Choose File");
+  // Completes step 1 and moves to the After-image step.
+  const completeBeforeStep = async () => {
+    chooseImage(createImageFile("before.png"));
+  
+    await waitFor(() => {
+      expect(
+        screen.getByAltText("Before preview")
+      ).toBeInTheDocument();
+    });
+  
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Next",
+      })
+    );
+  
+    expect(
+      screen.getByText("2. Upload After Image")
+    ).toBeInTheDocument();
+  };
+  
+  // Completes both wizard image-selection steps.
+  const completeBothImageSteps = async () => {
+    await completeBeforeStep();
+  
+    chooseImage(createImageFile("after.png"));
+  
+    await waitFor(() => {
+      expect(
+        screen.getByAltText("After preview")
+      ).toBeInTheDocument();
+    });
   };
   
   describe("Upload page", () => {
     beforeEach(() => {
-      // Clear previous mock calls before every test.
+      // Clear previous calls before every test.
       vi.clearAllMocks();
   
-      // Replace the browser FileReader with the predictable test version.
+      // Replace the browser FileReader with the predictable mock version.
       vi.stubGlobal("FileReader", MockFileReader);
     });
   
-    it("renders the upload page correctly", () => {
+    it("renders the first wizard step correctly", () => {
       render(<Upload />);
   
       expect(
@@ -82,7 +122,51 @@ import {
       ).toBeInTheDocument();
   
       expect(
+        screen.queryByText("2. Upload After Image")
+      ).not.toBeInTheDocument();
+  
+      expect(
+        screen.getByRole("button", {
+          name: "Next",
+        })
+      ).toBeDisabled();
+    });
+  
+    it("enables Next after a valid Before image is selected", async () => {
+      render(<Upload />);
+  
+      chooseImage(createImageFile("before.png"));
+  
+      await waitFor(() => {
+        expect(
+          screen.getByAltText("Before preview")
+        ).toBeInTheDocument();
+      });
+  
+      expect(
+        screen.getByRole("button", {
+          name: "Next",
+        })
+      ).toBeEnabled();
+    });
+  
+    it("moves from the Before step to the After step", async () => {
+      render(<Upload />);
+  
+      await completeBeforeStep();
+  
+      expect(
+        screen.queryByText("1. Upload Before Image")
+      ).not.toBeInTheDocument();
+  
+      expect(
         screen.getByText("2. Upload After Image")
+      ).toBeInTheDocument();
+  
+      expect(
+        screen.getByRole("button", {
+          name: "Back",
+        })
       ).toBeInTheDocument();
   
       expect(
@@ -92,60 +176,36 @@ import {
       ).toBeDisabled();
     });
   
-    it("keeps the submit button disabled when only one image is selected", async () => {
+    it("returns to the Before step and keeps the selected image", async () => {
       render(<Upload />);
   
-      const [beforeInput] = getFileInputs();
-      const beforeFile = createImageFile("before.png");
+      await completeBeforeStep();
   
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [beforeFile],
-        },
-      });
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Back",
+        })
+      );
   
-      await waitFor(() => {
-        expect(
-          screen.getByAltText("Before preview")
-        ).toBeInTheDocument();
-      });
+      expect(
+        screen.getByText("1. Upload Before Image")
+      ).toBeInTheDocument();
+  
+      expect(
+        screen.getByAltText("Before preview")
+      ).toBeInTheDocument();
   
       expect(
         screen.getByRole("button", {
-          name: "Submit Images",
+          name: "Next",
         })
-      ).toBeDisabled();
+      ).toBeEnabled();
     });
   
-    it("enables the submit button after both images are selected", async () => {
+    it("enables Submit Images after both images are selected", async () => {
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
-  
-      const beforeFile = createImageFile("before.png");
-      const afterFile = createImageFile("after.png");
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [beforeFile],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [afterFile],
-        },
-      });
-  
-      await waitFor(() => {
-        expect(
-          screen.getByAltText("Before preview")
-        ).toBeInTheDocument();
-  
-        expect(
-          screen.getByAltText("After preview")
-        ).toBeInTheDocument();
-      });
+      await completeBothImageSteps();
   
       expect(
         screen.getByRole("button", {
@@ -154,10 +214,8 @@ import {
       ).toBeEnabled();
     });
   
-    it("rejects a file that is not an image", () => {
+    it("rejects an unsupported file type", () => {
       render(<Upload />);
-  
-      const [beforeInput] = getFileInputs();
   
       const textFile = new File(
         ["plain text"],
@@ -167,24 +225,48 @@ import {
         }
       );
   
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [textFile],
-        },
-      });
+      chooseImage(textFile);
   
       expect(
-        screen.getByText("Only image files are allowed")
+        screen.getByText(
+          "Only JPG, PNG, and TIFF image files are allowed."
+        )
       ).toBeInTheDocument();
   
       expect(
         screen.getByRole("button", {
-          name: "Submit Images",
+          name: "Next",
         })
       ).toBeDisabled();
     });
   
-    it("uploads both images and navigates to the processing page", async () => {
+    it("rejects an image larger than 10MB", () => {
+      render(<Upload />);
+  
+      const largeFile = new File(
+        [new Uint8Array(10 * 1024 * 1024 + 1)],
+        "large.png",
+        {
+          type: "image/png",
+        }
+      );
+  
+      chooseImage(largeFile);
+  
+      expect(
+        screen.getByText(
+          "The selected image must be 10MB or smaller."
+        )
+      ).toBeInTheDocument();
+  
+      expect(
+        screen.getByRole("button", {
+          name: "Next",
+        })
+      ).toBeDisabled();
+    });
+  
+    it("uploads both images and navigates to Processing", async () => {
       api.post.mockResolvedValue({
         data: {
           inspectionId: 25,
@@ -193,46 +275,40 @@ import {
   
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
+      await completeBothImageSteps();
   
-      const beforeFile = createImageFile("before.png");
-      const afterFile = createImageFile("after.png");
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [beforeFile],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [afterFile],
-        },
-      });
-  
-      const submitButton = screen.getByRole("button", {
-        name: "Submit Images",
-      });
-  
-      await waitFor(() => {
-        expect(submitButton).toBeEnabled();
-      });
-  
-      fireEvent.click(submitButton);
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Submit Images",
+        })
+      );
   
       await waitFor(() => {
         expect(api.post).toHaveBeenCalledTimes(1);
       });
   
-      expect(api.post).toHaveBeenCalledWith(
-        "/api/inspections/upload",
-        expect.any(FormData),
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+      const [url, formData, config] = api.post.mock.calls[0];
+  
+      expect(url).toBe("/api/inspections/upload");
+      expect(formData).toBeInstanceOf(FormData);
+  
+      expect(formData.get("imageBefore")).toEqual(
+        expect.objectContaining({
+          name: "before.png",
+        })
       );
+  
+      expect(formData.get("imageAfter")).toEqual(
+        expect.objectContaining({
+          name: "after.png",
+        })
+      );
+  
+      expect(config).toEqual({
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
   
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
@@ -250,7 +326,7 @@ import {
       });
     });
   
-    it("supports a backend response that returns id instead of inspectionId", async () => {
+    it("supports an API response containing id instead of inspectionId", async () => {
       api.post.mockResolvedValue({
         data: {
           id: 30,
@@ -259,27 +335,7 @@ import {
   
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [createImageFile("before.png")],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [createImageFile("after.png")],
-        },
-      });
-  
-      await waitFor(() => {
-        expect(
-          screen.getByRole("button", {
-            name: "Submit Images",
-          })
-        ).toBeEnabled();
-      });
+      await completeBothImageSteps();
   
       fireEvent.click(
         screen.getByRole("button", {
@@ -290,12 +346,16 @@ import {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
           "/processing/30",
-          expect.any(Object)
+          expect.objectContaining({
+            state: expect.objectContaining({
+              inspectionId: 30,
+            }),
+          })
         );
       });
     });
   
-    it("shows a friendly message when the images are too large", async () => {
+    it("returns to step 2 and shows a message for a 413 response", async () => {
       api.post.mockRejectedValue({
         response: {
           status: 413,
@@ -304,27 +364,7 @@ import {
   
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [createImageFile("before.png")],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [createImageFile("after.png")],
-        },
-      });
-  
-      await waitFor(() => {
-        expect(
-          screen.getByRole("button", {
-            name: "Submit Images",
-          })
-        ).toBeEnabled();
-      });
+      await completeBothImageSteps();
   
       fireEvent.click(
         screen.getByRole("button", {
@@ -338,10 +378,14 @@ import {
         )
       ).toBeInTheDocument();
   
+      expect(
+        screen.getByText("2. Upload After Image")
+      ).toBeInTheDocument();
+  
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   
-    it("shows a friendly message for an unsupported file response", async () => {
+    it("returns to step 2 and shows a message for a 415 response", async () => {
       api.post.mockRejectedValue({
         response: {
           status: 415,
@@ -350,27 +394,7 @@ import {
   
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [createImageFile("before.png")],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [createImageFile("after.png")],
-        },
-      });
-  
-      await waitFor(() => {
-        expect(
-          screen.getByRole("button", {
-            name: "Submit Images",
-          })
-        ).toBeEnabled();
-      });
+      await completeBothImageSteps();
   
       fireEvent.click(
         screen.getByRole("button", {
@@ -380,39 +404,25 @@ import {
   
       expect(
         await screen.findByText(
-          "Please upload a supported image file."
+          "Please upload JPG, PNG, or TIFF image files."
         )
       ).toBeInTheDocument();
+  
+      expect(
+        screen.getByText("2. Upload After Image")
+      ).toBeInTheDocument();
+  
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   
-    it("shows a general message when the upload request fails", async () => {
+    it("returns to step 2 and shows a general upload error", async () => {
       api.post.mockRejectedValue(
         new Error("Network failure")
       );
   
       render(<Upload />);
   
-      const [beforeInput, afterInput] = getFileInputs();
-  
-      fireEvent.change(beforeInput, {
-        target: {
-          files: [createImageFile("before.png")],
-        },
-      });
-  
-      fireEvent.change(afterInput, {
-        target: {
-          files: [createImageFile("after.png")],
-        },
-      });
-  
-      await waitFor(() => {
-        expect(
-          screen.getByRole("button", {
-            name: "Submit Images",
-          })
-        ).toBeEnabled();
-      });
+      await completeBothImageSteps();
   
       fireEvent.click(
         screen.getByRole("button", {
@@ -424,6 +434,10 @@ import {
         await screen.findByText(
           "We could not upload the images. Please try again."
         )
+      ).toBeInTheDocument();
+  
+      expect(
+        screen.getByText("2. Upload After Image")
       ).toBeInTheDocument();
   
       expect(mockNavigate).not.toHaveBeenCalled();

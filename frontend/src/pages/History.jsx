@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaDownload } from "react-icons/fa";
 import api from "../api";
 import "./History.css";
@@ -8,9 +9,34 @@ import "./History.css";
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+// Converts an image path returned by the backend into a valid URL.
+const buildImageUrl = (imagePath) => {
+  if (!imagePath) {
+    return "";
+  }
+
+  // Keeps complete URLs unchanged.
+  if (
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://") ||
+    imagePath.startsWith("blob:") ||
+    imagePath.startsWith("data:")
+  ) {
+    return imagePath;
+  }
+
+  // Prevents accidental double slashes in the URL.
+  const normalizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  const normalizedImagePath = imagePath.replace(/^\//, "");
+
+  return `${normalizedBaseUrl}/${normalizedImagePath}`;
+};
+
 function History() {
+  // Allows navigation to the Results page.
+  const navigate = useNavigate();
+
   // Controls the current sorting method.
-  // Priority is the default because US-1 requires important cases first.
   const [sortOrder, setSortOrder] = useState("priority");
 
   // Stores the inspection history returned by the backend.
@@ -41,14 +67,20 @@ function History() {
 
         const response = await api.get("/api/inspections");
 
-        // Support both a wrapped inspections array and a direct array.
+        // Supports both a wrapped inspections array
+        // and a direct array response.
         const inspections =
-          response.data.inspections ||
-          (Array.isArray(response.data) ? response.data : []);
+          response.data?.inspections ||
+          (Array.isArray(response.data)
+            ? response.data
+            : []);
 
         setHistory(inspections);
       } catch (err) {
-        console.error("Failed to load inspection history:", err);
+        console.error(
+          "Failed to load inspection history:",
+          err
+        );
 
         setError(
           "We could not load your inspection history. Please try again."
@@ -60,6 +92,11 @@ function History() {
 
     fetchHistory();
   }, []);
+
+  // Opens the complete Results page for the selected inspection.
+  const handleOpenResults = (inspectionId) => {
+    navigate(`/results/${inspectionId}`);
+  };
 
   // Downloads a PDF report for a specific inspection.
   const handleDownloadReport = async (inspectionId) => {
@@ -154,8 +191,6 @@ function History() {
   const getInspectionPriority = (item) => {
     const caseStatus = getCaseStatus(item);
 
-    // A detected change that still requires inspector review
-    // is the highest-priority case.
     if (
       item.changes_detected === true &&
       caseStatus === "under_review"
@@ -163,8 +198,6 @@ function History() {
       return 1;
     }
 
-    // Confirmed detected changes remain important,
-    // but they have already been reviewed.
     if (
       item.changes_detected === true &&
       caseStatus === "confirmed"
@@ -172,8 +205,6 @@ function History() {
       return 2;
     }
 
-    // Inspections still being processed or waiting for a result
-    // should remain visible near the top.
     if (
       item.status === "pending" ||
       item.status === "processing"
@@ -181,7 +212,6 @@ function History() {
       return 3;
     }
 
-    // Detected changes that were dismissed are already resolved.
     if (
       item.changes_detected === true &&
       caseStatus === "dismissed"
@@ -189,12 +219,10 @@ function History() {
       return 4;
     }
 
-    // Inspections without detected changes require less attention.
     if (item.changes_detected === false) {
       return 5;
     }
 
-    // Failed or incomplete records are placed last.
     return 6;
   };
 
@@ -208,8 +236,6 @@ function History() {
       ? new Date(b.created_at).getTime()
       : 0;
 
-    // Prioritize important cases first.
-    // Cases with the same priority are ordered newest first.
     if (sortOrder === "priority") {
       const priorityDifference =
         getInspectionPriority(a) -
@@ -222,7 +248,6 @@ function History() {
       return secondDate - firstDate;
     }
 
-    // Sort only by date when the user selects a chronological option.
     return sortOrder === "newest"
       ? secondDate - firstDate
       : firstDate - secondDate;
@@ -261,7 +286,7 @@ function History() {
         </div>
       ) : (
         <>
-          {/* Sorting controls. */}
+          {/* Sorting controls */}
           <div className="history-sort">
             <button
               type="button"
@@ -300,7 +325,7 @@ function History() {
             </button>
           </div>
 
-          {/* Allows horizontal scrolling on smaller screens. */}
+          {/* Allows horizontal scrolling on smaller screens */}
           <div className="history-table-wrapper">
             <table className="history-table">
               <thead>
@@ -310,13 +335,13 @@ function History() {
                   <th>After Image</th>
                   <th>Result</th>
                   <th>Case Status</th>
+                  <th>View</th>
                   <th>Report</th>
                 </tr>
               </thead>
 
               <tbody>
                 {sortedHistory.map((item) => {
-                  // Converts backend result values into plain-language text.
                   const resultText =
                     item.status === "failed"
                       ? "Failed"
@@ -326,7 +351,6 @@ function History() {
                           ? "No Change Detected"
                           : item.status || "Pending";
 
-                  // Selects the existing CSS class for the result.
                   const resultClass =
                     resultText === "Change Detected"
                       ? "change"
@@ -347,6 +371,16 @@ function History() {
                     reportErrorId === item.id &&
                     reportError;
 
+                  const beforeImageUrl = buildImageUrl(
+                    item.image_before_path ||
+                      item.imageBeforePath
+                  );
+
+                  const afterImageUrl = buildImageUrl(
+                    item.image_after_path ||
+                      item.imageAfterPath
+                  );
+
                   return (
                     <tr key={item.id}>
                       <td>
@@ -358,9 +392,9 @@ function History() {
                       </td>
 
                       <td>
-                        {item.image_before_path ? (
+                        {beforeImageUrl ? (
                           <img
-                            src={`${API_BASE_URL}/${item.image_before_path}`}
+                            src={beforeImageUrl}
                             alt="Before inspection"
                             className="thumb"
                           />
@@ -372,9 +406,9 @@ function History() {
                       </td>
 
                       <td>
-                        {item.image_after_path ? (
+                        {afterImageUrl ? (
                           <img
-                            src={`${API_BASE_URL}/${item.image_after_path}`}
+                            src={afterImageUrl}
                             alt="After inspection"
                             className="thumb"
                           />
@@ -401,6 +435,24 @@ function History() {
                         </span>
                       </td>
 
+                      {/* Opens the complete Results page */}
+                      <td>
+                        <button
+                          type="button"
+                          className="history-report-button"
+                          onClick={() =>
+                            handleOpenResults(item.id)
+                          }
+                          disabled={
+                            item.status === "failed" ||
+                            item.status === "pending" ||
+                            item.status === "processing"
+                          }
+                        >
+                          Open Results
+                        </button>
+                      </td>
+
                       <td>
                         <div className="report-cell">
                           <button
@@ -411,7 +463,9 @@ function History() {
                             }
                             disabled={
                               isDownloading ||
-                              item.status === "failed"
+                              item.status === "failed" ||
+                              item.status === "pending" ||
+                              item.status === "processing"
                             }
                           >
                             <FaDownload />

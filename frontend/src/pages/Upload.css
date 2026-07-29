@@ -1,170 +1,311 @@
 .upload-page {
-    padding: 35px 55px;
-    background: #f8fafc;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
-    color: #0f172a;
+  padding: 35px 55px;
+  background: #f8fafc;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  color: #0f172a;
+}
+
+.upload-page h1 {
+  text-align: center;
+  color: #0f172a;
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.upload-subtitle {
+  text-align: center;
+  color: #475569;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 35px;
+}
+
+/* Four-step wizard progress indicator. */
+.upload-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.step {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.step.active {
+  background: var(--color-teal);
+  color: white;
+}
+
+.line {
+  width: 135px;
+  height: 2px;
+  background: #e5e7eb;
+}
+
+.line.active {
+  background: var(--color-teal);
+}
+
+.step-labels {
+  display: grid;
+  grid-template-columns: repeat(4, 135px);
+  justify-content: center;
+  column-gap: 46px;
+  color: #0f172a;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+/* Main content for one active wizard step. */
+.wizard-content {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.wizard-content h2 {
+  color: #0f172a;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.wizard-description {
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+.upload-box {
+  background: white;
+  border: 2px dashed #d1d5db;
+  border-radius: 14px;
+  padding: 28px;
+  min-height: 260px;
+  text-align: center;
+}
+
+.upload-placeholder {
+  height: 230px;
+  border-radius: 14px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon {
+  font-size: 54px;
+  color: var(--color-navy);
+  margin-bottom: 10px;
+}
+
+.upload-placeholder p {
+  font-size: 17px;
+  font-weight: bold;
+  color: #0f172a;
+  margin: 6px 0;
+}
+
+.upload-placeholder span {
+  color: #64748b;
+  margin: 8px 0;
+}
+
+.upload-placeholder label,
+.replace-file-button {
+  display: inline-block;
+  background: var(--color-teal);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.upload-placeholder input,
+.replace-file-button input {
+  display: none;
+}
+
+.upload-placeholder small {
+  margin-top: 18px;
+  color: #64748b;
+  font-weight: bold;
+}
+
+/* Holds the selected preview and Replace Image button. */
+.selected-image-container {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.upload-box img {
+  width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.upload-error {
+  color: #dc2626;
+  margin-top: 18px;
+  margin-bottom: 0;
+  font-weight: bold;
+}
+
+/* Navigation buttons for the wizard. */
+.wizard-actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.wizard-actions.single-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.upload-button {
+  width: 100%;
+  background: var(--color-navy);
+  color: white;
+  border: none;
+  padding: 18px 28px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.single-action .upload-button {
+  max-width: 300px;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: var(--color-navy);
+}
+
+.upload-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.back-button {
+  width: 100%;
+  background: white;
+  color: var(--color-navy);
+  border: 2px solid var(--color-navy);
+  padding: 16px 28px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.back-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Loading state used during the upload request. */
+.processing-step {
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.upload-loader {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 22px;
+  border: 6px solid #e5e7eb;
+  border-top-color: var(--color-teal);
+  border-radius: 50%;
+  animation: upload-spin 0.9s linear infinite;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
   }
-  
-  .upload-page h1 {
-    text-align: center;
-    color: #0f172a;
-    font-size: 36px;
-    margin-bottom: 10px;
+}
+
+.upload-note {
+  max-width: 760px;
+  margin: 22px auto 0;
+  color: #64748b;
+  font-weight: bold;
+}
+
+/* Keeps the wizard usable on smaller screens. */
+@media (max-width: 900px) {
+  .upload-page {
+    padding: 30px 24px;
   }
-  
-  .upload-subtitle {
-    text-align: center;
-    color: #475569;
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 35px;
-  }
-  
-  .upload-steps {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-  }
-  
-  .step {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: #e5e7eb;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-  }
-  
-  .step.active {
-    background: var(--color-teal);
-    color: white;
-  }
-  
+
   .line {
-    width: 180px;
-    height: 2px;
-    background: #e5e7eb;
+    width: 70px;
   }
-  
+
   .step-labels {
-    display: flex;
-    justify-content: center;
-    gap: 155px;
-    color: #0f172a;
-    font-weight: bold;
-    margin-bottom: 35px;
+    grid-template-columns: repeat(4, 80px);
+    column-gap: 36px;
+    font-size: 14px;
   }
-  
-  .upload-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
+}
+
+@media (max-width: 600px) {
+  .upload-page {
+    padding: 25px 16px;
   }
-  
-  .upload-grid h2,
-  .submit-title {
-    color: #0f172a;
-    font-size: 22px;
-    margin-bottom: 14px;
+
+  .upload-page h1 {
+    font-size: 29px;
   }
-  
-  .upload-box {
-    background: white;
-    border: 2px dashed #d1d5db;
-    border-radius: 14px;
-    padding: 28px;
-    min-height: 260px;
-    text-align: center;
+
+  .step {
+    width: 38px;
+    height: 38px;
   }
-  
-  .upload-placeholder {
-    height: 230px;
-    border-radius: 14px;
-    background: #ffffff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+
+  .line {
+    width: 34px;
   }
-  
-  .upload-icon {
-    font-size: 54px;
-    color: var(--color-navy);
-    margin-bottom: 10px;
+
+  .step-labels {
+    grid-template-columns: repeat(4, 56px);
+    column-gap: 16px;
+    font-size: 11px;
   }
-  
-  .upload-placeholder p {
-    font-size: 17px;
-    font-weight: bold;
-    color: #0f172a;
-    margin: 6px 0;
+
+  .wizard-actions {
+    grid-template-columns: 1fr;
   }
-  
-  .upload-placeholder span {
-    color: #64748b;
-    margin: 8px 0;
+
+  .single-action .upload-button {
+    max-width: none;
   }
-  
-  .upload-placeholder label {
-    background: var(--color-teal);
-    color: white;
-    padding: 12px 28px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  
-  .upload-placeholder input {
-    display: none;
-  }
-  
-  .upload-placeholder small {
-    margin-top: 18px;
-    color: #64748b;
-    font-weight: bold;
-  }
-  
-  .upload-box img {
-    width: 100%;
-    max-height: 250px;
-    object-fit: contain;
-    border-radius: 12px;
-  }
-  
-  .upload-error {
-    color: #dc2626;
-    margin-top: 18px;
-    font-weight: bold;
-  }
-  
-  .submit-title {
-    margin-top: 30px;
-  }
-  
-  .upload-button {
-    width: 100%;
-    margin-top: 8px;
-    background: var(--color-navy);
-    color: white;
-    border: none;
-    padding: 18px 28px;
-    border-radius: 10px;
-    font-size: 22px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  
-  .upload-button:hover {
-    background: var(--color-navy);
-  }
-  
-  .upload-note {
-    margin-top: 22px;
-    color: #64748b;
-    font-weight: bold;
-  }
+}
