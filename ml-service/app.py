@@ -98,12 +98,35 @@ async def predict(
 
     # --- MOCK RESPONSE ---
     # TODO: Replace with actual Tiny-CD inference
-    # The bounding box format is {x, y, w, h} in pixels relative to the image dimensions
+    # The bounding box format is {x, y, w, h} in pixels relative to the image dimensions.
+    #
+    # Bug fixed here (found via a broken-looking PDF report - boxes drawn outside
+    # the image, or in seemingly random spots): these used to be hardcoded absolute
+    # pixel values (e.g. {"x": 400, "y": 300, ...}), which only look right for a
+    # coincidentally-sized image. Every real uploaded photo has different pixel
+    # dimensions, so a box like y=300,h=60 can land entirely below the bottom edge
+    # of a smaller image, or bunched into a tiny corner of a much larger one - both
+    # the backend's PDF report and the standalone processed image trust these
+    # coordinates completely and simply place a rectangle at (x, y, w, h) on top of
+    # the real "after" image, so garbage in the mock is garbage in every artifact
+    # that draws it. Deriving the boxes as a proportion of the real "after" image's
+    # own dimensions (already read above via Pillow) guarantees they always land
+    # sensibly inside the image, regardless of its actual resolution.
     mock_result = {
         "changes_detected": True,
         "bounding_boxes": [
-            {"x": 120, "y": 85, "w": 200, "h": 150},
-            {"x": 400, "y": 300, "w": 80, "h": 60},
+            {
+                "x": round(after_w * 0.15),
+                "y": round(after_h * 0.15),
+                "w": round(after_w * 0.30),
+                "h": round(after_h * 0.35),
+            },
+            {
+                "x": round(after_w * 0.55),
+                "y": round(after_h * 0.55),
+                "w": round(after_w * 0.15),
+                "h": round(after_h * 0.15),
+            },
         ],
         "confidence": 0.87,
     }
