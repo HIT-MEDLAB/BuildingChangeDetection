@@ -83,6 +83,16 @@ Full endpoint-by-endpoint reference: `docs/api-spec.md`. Summary by area:
 The backend calls the ML service's `POST /predict` with both images as multipart form data and
 expects `{ changes_detected: boolean, bounding_boxes: [{x,y,w,h}], confidence: number }`.
 
+**Bug fixed (found via a garbled-looking PDF report)**: the mock's bounding boxes used to be
+hardcoded absolute pixel values, unrelated to the actual uploaded image's dimensions. Every
+consumer (the standalone processed image, and the PDF report's live-drawn fallback) trusts these
+coordinates as already being in the real "after" image's own pixel space and places a rectangle
+directly at `(x, y, w, h)` - so a box like `y: 300, h: 60` could land entirely outside a smaller
+image, or bunched in a tiny corner of a larger one. Fixed by deriving the mock boxes as a
+proportion of the real "after" image's dimensions (`ml-service/app.py` already reads these via
+Pillow for the aspect-ratio check). Verified against a 1200x800 synthetic image and rendered to
+PDF - both boxes now land inside the image at sensible positions.
+
 Robustness added this week (NFR-REL-01, NFR-PERF-01, REQ-CORE-06):
 
 - **Timeout**: the ML call is bounded by an `AbortController` (`ML_TIMEOUT_MS`, default 5000ms,
