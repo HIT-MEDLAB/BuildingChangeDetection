@@ -11,7 +11,15 @@ services:
       POSTGRES_DB: ${DB_NAME:-building_change_detection}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # All three files run in filename order on first container init only
+      # (Postgres image behavior - docker-entrypoint-initdb.d scripts run once
+      # against an empty data directory, never again after that). Previously
+      # only 001 was mounted here, so a fresh clone got a DB missing the
+      # role/case_status/processed_image_path columns that the app actually
+      # depends on - seed.js and most queries would fail outright.
       - ./database/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
+      - ./database/002_add_roles_and_status.sql:/docker-entrypoint-initdb.d/002_add_roles_and_status.sql
+      - ./database/003_add_processed_image.sql:/docker-entrypoint-initdb.d/003_add_processed_image.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bcd_user}"]
       interval: 5s
