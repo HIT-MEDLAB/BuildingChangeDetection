@@ -370,18 +370,21 @@ import {
         })
       );
   
+      // Verify that both the selected status and note
+      // are sent to the backend.
       await waitFor(() => {
         expect(api.patch).toHaveBeenCalledWith(
           "/api/inspections/123/status",
           {
             caseStatus: "confirmed",
+            note: "",
           }
         );
       });
   
       expect(
         await screen.findByText(
-          "Case status updated successfully."
+          "Case status and note updated successfully."
         )
       ).toBeInTheDocument();
   
