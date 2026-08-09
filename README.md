@@ -1,4 +1,4 @@
-# Building Change Detection System
+# Municipal Illegal Construction Detection System
 
 An AI-powered web application for detecting structural changes in buildings by comparing inspection images over time. Inspectors upload two images of the same building (taken at different times), and a machine-learning model highlights areas where changes have occurred — cracks, structural shifts, new additions, or deterioration.
 
@@ -23,7 +23,7 @@ graph LR
 | Backend     | Node.js, Express     | REST API, authentication, file mgmt  |
 | Database    | PostgreSQL 16        | Inspection data, user accounts        |
 | ML Service  | Python, FastAPI      | Change-detection inference (Tiny-CD) |
-| Dev Tools   | Docker Compose       | Local database provisioning (optional)|
+| Dev Tools   | Docker Compose       | Local database provisioning           |
 
 ## Quick Start
 
@@ -33,18 +33,40 @@ graph LR
 - Python 3.10+
 - PostgreSQL 16 (local install, Docker, or a free cloud service like [Neon](https://neon.tech) / [Supabase](https://supabase.com))
 
-### 1. Start the backend
+### 1. Start the database
+
+The backend requires a working database connection to do anything useful (including login — there
+is no self-registration, so without a seeded user you can't sign in at all). Set this up first.
+
+If you have Docker installed, spin up PostgreSQL + Adminer with one command:
+
+```bash
+cp .env.example .env        # Edit with your preferred credentials
+docker compose up -d         # Starts PostgreSQL + Adminer, applies all migrations in database/
+```
+
+Adminer (DB browser) will be available at `http://localhost:8080`.
+
+If you prefer to install PostgreSQL directly or use a cloud instance, create a database manually
+and run all three migration files against it, in order: `database/001_initial_schema.sql`,
+`database/002_add_roles_and_status.sql`, `database/003_add_processed_image.sql`.
+
+### 2. Start the backend
 
 ```bash
 cd backend
-cp .env.example .env         # Edit if needed
+cp .env.example .env         # Edit if needed — must point at the database from step 1
 npm install
+node seed.js                 # Creates default login users (no self-registration endpoint exists):
+                              #   inspector — yair@medlab.hit.ac.il / password123
+                              #   admin     — admin@medlab.hit.ac.il / admin123
 npm run dev                  # Runs on http://localhost:3000
 ```
 
-> The backend starts without a database connection — all endpoints return 501 at this stage. You'll configure the DB later when you start implementing real features.
+> Without a reachable database, the backend still starts, but any DB-dependent request (e.g.
+> `POST /api/auth/login`) fails with a `500 Internal Server Error`, not a special status code.
 
-### 2. Start the frontend
+### 3. Start the frontend
 
 ```bash
 cd frontend
@@ -53,28 +75,16 @@ npm install
 npm run dev                  # Runs on http://localhost:5173
 ```
 
-### 3. Start the ML service
+### 4. Start the ML service
 
 ```bash
 cd ml-service
 python -m venv .venv
 source .venv/bin/activate    # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt   # Note: installs torch/torchvision (large download); the
+                                   # current app.py is a mock and doesn't import them yet
 uvicorn app:app --reload --port 8000
 ```
-
-### Optional: Database with Docker
-
-If you have Docker installed, you can spin up PostgreSQL + Adminer with one command:
-
-```bash
-cp .env.example .env        # Edit with your preferred credentials
-docker compose up -d         # Starts PostgreSQL + Adminer
-```
-
-Adminer (DB browser) will be available at `http://localhost:8080`.
-
-If you prefer to install PostgreSQL directly or use a cloud instance, create a database manually and run `database/001_initial_schema.sql` against it.
 
 ## Project Structure
 
@@ -91,9 +101,10 @@ BuildingChangeDetection/
 │   │   ├── routes/     # Route handlers grouped by domain
 │   │   ├── middleware/  # Auth, error handling, etc.
 │   │   └── config/     # DB pool, environment config
+│   ├── seed.js         # Creates default inspector/admin login users
 │   └── ...
 ├── ml-service/         # FastAPI ML inference service
-├── database/           # SQL migrations and seed scripts
+├── database/           # SQL migrations (001-003, applied via docker-compose)
 ├── docs/               # Architecture docs, API spec
 └── docker-compose.yml  # Local development infrastructure
 ```
