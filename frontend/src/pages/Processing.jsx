@@ -161,7 +161,10 @@ function Processing() {
   }, [id, navigate, images]);
 
   return (
-    <div className="processing-page">
+    <div
+      className="processing-page"
+      data-testid="processing-screen"
+    >
       <div className="processing-card">
         <h1>
           {error
@@ -180,6 +183,7 @@ function Processing() {
           <>
             <div
               className="loader-ring"
+              data-testid="processing-progress"
               style={{
                 "--progress": `${progress}%`,
               }}

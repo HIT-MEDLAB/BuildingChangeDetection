@@ -4,7 +4,10 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { FaCheckCircle, FaDownload } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaDownload,
+} from "react-icons/fa";
 import api from "../api";
 import "./Results.css";
 
@@ -12,7 +15,8 @@ import "./Results.css";
 // If VITE_API_URL exists, it is used.
 // Otherwise, the local backend address is used.
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 // Converts an image path returned by the backend into a valid browser URL.
 const buildImageUrl = (imagePath) => {
@@ -33,10 +37,12 @@ const buildImageUrl = (imagePath) => {
   }
 
   // Removes a trailing slash from the base URL.
-  const normalizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  const normalizedBaseUrl =
+    API_BASE_URL.replace(/\/$/, "");
 
   // Removes a leading slash from the image path.
-  const normalizedImagePath = imagePath.replace(/^\//, "");
+  const normalizedImagePath =
+    imagePath.replace(/^\//, "");
 
   return `${normalizedBaseUrl}/${normalizedImagePath}`;
 };
@@ -49,49 +55,66 @@ function Results() {
   const navigate = useNavigate();
 
   // Gets the inspection ID from the page URL.
-  // Example: /results/15
   const { id } = useParams();
 
   // Stores the inspection information received from the backend.
-  const [inspection, setInspection] = useState(null);
+  const [inspection, setInspection] =
+    useState(null);
 
   // Indicates whether the inspection data is still loading.
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
   // Stores an error message if loading the inspection fails.
   const [error, setError] = useState("");
 
   // Indicates whether the PDF report is currently being downloaded.
-  const [reportLoading, setReportLoading] = useState(false);
-
-  // Stores a separate error message for PDF report downloads.
-  const [reportError, setReportError] = useState("");
-
-  // Stores the case status selected by the inspector.
-  const [selectedCaseStatus, setSelectedCaseStatus] =
-    useState("under_review");
-
-  // Stores the inspector's note.
-  const [caseNote, setCaseNote] = useState("");
-
-  // Stores the last saved inspector's note.
-  const [savedCaseNote, setSavedCaseNote] = useState("");
-
-  // Indicates whether the case status is currently being saved.
-  const [caseStatusLoading, setCaseStatusLoading] =
+  const [reportLoading, setReportLoading] =
     useState(false);
 
-  // Stores a success message after updating the case status.
-  const [caseStatusSuccess, setCaseStatusSuccess] =
+  // Stores a separate error message for PDF report downloads.
+  const [reportError, setReportError] =
     useState("");
 
+  // Stores the case status selected by the inspector.
+  const [
+    selectedCaseStatus,
+    setSelectedCaseStatus,
+  ] = useState("under_review");
+
+  // Stores the inspector's note.
+  const [caseNote, setCaseNote] =
+    useState("");
+
+  // Stores the last saved inspector's note.
+  const [savedCaseNote, setSavedCaseNote] =
+    useState("");
+
+  // Indicates whether the case status is currently being saved.
+  const [
+    caseStatusLoading,
+    setCaseStatusLoading,
+  ] = useState(false);
+
+  // Stores a success message after updating the case status.
+  const [
+    caseStatusSuccess,
+    setCaseStatusSuccess,
+  ] = useState("");
+
   // Stores an error message if updating the case status fails.
-  const [caseStatusError, setCaseStatusError] = useState("");
+  const [
+    caseStatusError,
+    setCaseStatusError,
+  ] = useState("");
 
   // Stores the original dimensions of the After image.
   // These dimensions are used to convert bounding-box coordinates
   // from pixels into percentages.
-  const [afterImageSize, setAfterImageSize] = useState({
+  const [
+    afterImageSize,
+    setAfterImageSize,
+  ] = useState({
     width: 0,
     height: 0,
   });
@@ -102,7 +125,6 @@ function Results() {
 
     // Loads the inspection information from the backend.
     const fetchInspection = async () => {
-      // An inspection ID is required to load the results.
       if (!id) {
         setError(
           "The inspection ID is missing. Please upload the images again."
@@ -112,51 +134,55 @@ function Results() {
       }
 
       try {
-        // Starts the loading state and clears previous errors.
         setLoading(true);
         setError("");
 
-        // Sends a GET request to load the inspection details.
         const response = await api.get(
           `/api/inspections/${id}`
         );
 
-        // Stops if the user left the page while the request was running.
         if (!isActive) {
           return;
         }
 
-        // Uses an empty object if the backend returns no response body.
-        const inspectionData = response.data || {};
+        const inspectionData =
+          response.data || {};
 
-        // Stores the inspection information.
         setInspection(inspectionData);
 
-        // Supports both camelCase and snake_case backend values.
         const savedCaseStatus =
           inspectionData.caseStatus ||
           inspectionData.case_status ||
           "under_review";
 
-        // Displays the saved case status.
-        setSelectedCaseStatus(savedCaseStatus);
-        
-        // Displays and remembers the saved note.
-        const loadedNote = inspectionData.notes || "";
+        setSelectedCaseStatus(
+          savedCaseStatus
+        );
+
+        const loadedNote =
+          inspectionData.notes || "";
+
         setCaseNote(loadedNote);
         setSavedCaseNote(loadedNote);
       } catch (err) {
-        // Logs the full error for development and debugging.
-        console.error("Failed to load inspection:", err);
+        console.error(
+          "Failed to load inspection:",
+          err
+        );
 
         if (!isActive) {
           return;
         }
 
-        // Uses a backend error message when one is available.
-        if (err.response?.status === 404) {
-          setError("The inspection could not be found.");
-        } else if (err.response?.status === 403) {
+        if (
+          err.response?.status === 404
+        ) {
+          setError(
+            "The inspection could not be found."
+          );
+        } else if (
+          err.response?.status === 403
+        ) {
           setError(
             "You do not have permission to view this inspection."
           );
@@ -166,165 +192,183 @@ function Results() {
           );
         }
       } finally {
-        // Ends the loading state only while the component is active.
         if (isActive) {
           setLoading(false);
         }
       }
     };
 
-    // Loads the inspection whenever its ID changes.
     fetchInspection();
 
-    // Prevents updates after leaving the page.
     return () => {
       isActive = false;
     };
   }, [id]);
 
   // Updates the case classification in the backend.
-  const handleUpdateCaseStatus = async () => {
-    try {
-      // Starts the saving state and clears previous messages.
-      setCaseStatusLoading(true);
-      setCaseStatusSuccess("");
-      setCaseStatusError("");
+  const handleUpdateCaseStatus =
+    async () => {
+      try {
+        setCaseStatusLoading(true);
+        setCaseStatusSuccess("");
+        setCaseStatusError("");
 
-      // Sends the selected case status to the backend.
-      const response = await api.patch(
-        `/api/inspections/${id}/status`,
-        {
-          caseStatus: selectedCaseStatus,
-          note: caseNote,
+        const response = await api.patch(
+          `/api/inspections/${id}/status`,
+          {
+            caseStatus:
+              selectedCaseStatus,
+            note: caseNote,
+          }
+        );
+
+        const updatedCaseStatus =
+          response.data?.caseStatus ||
+          response.data?.case_status ||
+          selectedCaseStatus;
+
+        const updatedNote =
+          response.data?.notes ??
+          caseNote;
+
+        setInspection(
+          (currentInspection) => ({
+            ...currentInspection,
+            caseStatus:
+              updatedCaseStatus,
+            case_status:
+              updatedCaseStatus,
+            notes: updatedNote,
+          })
+        );
+
+        setSelectedCaseStatus(
+          updatedCaseStatus
+        );
+        setCaseNote(updatedNote);
+        setSavedCaseNote(updatedNote);
+
+        setCaseStatusSuccess(
+          "Case status and note updated successfully."
+        );
+      } catch (err) {
+        console.error(
+          "Failed to update case status:",
+          err
+        );
+
+        if (
+          err.response?.status === 400
+        ) {
+          setCaseStatusError(
+            "The selected case status is not valid."
+          );
+        } else if (
+          err.response?.status === 403
+        ) {
+          setCaseStatusError(
+            "You do not have permission to update this case."
+          );
+        } else if (
+          err.response?.status === 404
+        ) {
+          setCaseStatusError(
+            "Inspection not found."
+          );
+        } else {
+          setCaseStatusError(
+            "Failed to update the case status. Please try again."
+          );
         }
-      );
-
-      // Uses the selected value if the backend does not return it.
-      const updatedCaseStatus =
-        response.data?.caseStatus ||
-        response.data?.case_status ||
-        selectedCaseStatus;
-
-      // Uses the returned note when available.
-      const updatedNote =
-        response.data?.notes ?? caseNote;
-
-      // Updates the local inspection information.
-      setInspection((currentInspection) => ({
-        ...currentInspection,
-        caseStatus: updatedCaseStatus,
-        case_status: updatedCaseStatus,
-        notes: updatedNote,
-      }));
-
-      // Keeps the form synchronized with the saved values.
-      setSelectedCaseStatus(updatedCaseStatus);
-      setCaseNote(updatedNote);
-      setSavedCaseNote(updatedNote);
-
-      // Displays a success message.
-      setCaseStatusSuccess(
-        "Case status and note updated successfully."
-      );
-    } catch (err) {
-      // Logs the error for development and debugging.
-      console.error("Failed to update case status:", err);
-
-      // Displays an appropriate message based on the response status.
-      if (err.response?.status === 400) {
-        setCaseStatusError(
-          "The selected case status is not valid."
-        );
-      } else if (err.response?.status === 403) {
-        setCaseStatusError(
-          "You do not have permission to update this case."
-        );
-      } else if (err.response?.status === 404) {
-        setCaseStatusError("Inspection not found.");
-      } else {
-        setCaseStatusError(
-          "Failed to update the case status. Please try again."
-        );
+      } finally {
+        setCaseStatusLoading(false);
       }
-    } finally {
-      // Ends the case-status saving state.
-      setCaseStatusLoading(false);
-    }
-  };
+    };
 
   // Downloads the inspection summary report as a PDF file.
-  const handleDownloadReport = async () => {
-    try {
-      // Starts the download state and clears previous errors.
-      setReportLoading(true);
-      setReportError("");
+  const handleDownloadReport =
+    async () => {
+      try {
+        setReportLoading(true);
+        setReportError("");
 
-      // Requests the PDF report from the backend.
-      const response = await api.get(`/api/report/${id}`, {
-        responseType: "blob",
-      });
-
-      // Creates a Blob object that represents the PDF file.
-      const pdfBlob = new Blob([response.data], {
-        type: "application/pdf",
-      });
-
-      // Creates a temporary browser URL for the PDF.
-      const downloadUrl =
-        window.URL.createObjectURL(pdfBlob);
-
-      // Creates a temporary link element for the download.
-      const link = document.createElement("a");
-
-      // Sets the temporary file URL.
-      link.href = downloadUrl;
-
-      // Defines the downloaded file name.
-      link.download =
-        `inspection-${id}-summary-report.pdf`;
-
-      // Adds the temporary link to the page.
-      document.body.appendChild(link);
-
-      // Starts the file download.
-      link.click();
-
-      // Removes the temporary link from the page.
-      link.remove();
-
-      // Releases the temporary URL from browser memory.
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
-      // Logs the error for development and debugging.
-      console.error("Failed to download report:", err);
-
-      // Displays an appropriate download error message.
-      if (err.response?.status === 404) {
-        setReportError(
-          "The report is not available for this inspection."
+        const response = await api.get(
+          `/api/report/${id}`,
+          {
+            responseType: "blob",
+          }
         );
-      } else if (err.response?.status === 403) {
-        setReportError(
-          "You do not have permission to download this report."
+
+        const pdfBlob = new Blob(
+          [response.data],
+          {
+            type: "application/pdf",
+          }
         );
-      } else {
-        setReportError(
-          "Failed to download the summary report. Please try again."
+
+        const downloadUrl =
+          window.URL.createObjectURL(
+            pdfBlob
+          );
+
+        const link =
+          document.createElement("a");
+
+        link.href = downloadUrl;
+
+        link.download =
+          `inspection-${id}-summary-report.pdf`;
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        window.URL.revokeObjectURL(
+          downloadUrl
         );
+      } catch (err) {
+        console.error(
+          "Failed to download report:",
+          err
+        );
+
+        if (
+          err.response?.status === 404
+        ) {
+          setReportError(
+            "The report is not available for this inspection."
+          );
+        } else if (
+          err.response?.status === 403
+        ) {
+          setReportError(
+            "You do not have permission to download this report."
+          );
+        } else {
+          setReportError(
+            "Failed to download the summary report. Please try again."
+          );
+        }
+      } finally {
+        setReportLoading(false);
       }
-    } finally {
-      // Ends the PDF download state.
-      setReportLoading(false);
-    }
-  };
+    };
 
   // Converts the technical case-status value into a readable label.
-  const getCaseStatusLabel = (caseStatus) => {
-    if (caseStatus === "confirmed") {
+  const getCaseStatusLabel = (
+    caseStatus
+  ) => {
+    if (
+      caseStatus === "confirmed"
+    ) {
       return "Confirmed";
     }
 
-    if (caseStatus === "dismissed") {
+    if (
+      caseStatus === "dismissed"
+    ) {
       return "Dismissed";
     }
 
@@ -334,7 +378,10 @@ function Results() {
   // Displays a loading message while waiting for the backend.
   if (loading) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="results-message">
@@ -347,14 +394,21 @@ function Results() {
   // Displays an error if the inspection request failed.
   if (error) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
-        <p className="upload-error">{error}</p>
+        <p className="upload-error">
+          {error}
+        </p>
 
         <button
           type="button"
-          onClick={() => navigate("/upload")}
+          onClick={() =>
+            navigate("/upload")
+          }
         >
           Back to Upload
         </button>
@@ -365,7 +419,10 @@ function Results() {
   // Handles a missing inspection response safely.
   if (!inspection) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="results-message">
@@ -374,7 +431,9 @@ function Results() {
 
         <button
           type="button"
-          onClick={() => navigate("/history")}
+          onClick={() =>
+            navigate("/history")
+          }
         >
           Back to History
         </button>
@@ -383,19 +442,28 @@ function Results() {
   }
 
   // Handles an inspection that failed during ML processing.
-  if (inspection.status === "failed") {
+  if (
+    inspection.status === "failed"
+  ) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="upload-error">
-          The inspection could not be completed because the
-          analysis failed. Please upload the images again.
+          The inspection could not be
+          completed because the analysis
+          failed. Please upload the images
+          again.
         </p>
 
         <button
           type="button"
-          onClick={() => navigate("/upload")}
+          onClick={() =>
+            navigate("/upload")
+          }
         >
           Back to Upload
         </button>
@@ -409,7 +477,10 @@ function Results() {
     inspection.status === "processing"
   ) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="results-message">
@@ -418,7 +489,9 @@ function Results() {
 
         <button
           type="button"
-          onClick={() => navigate("/history")}
+          onClick={() =>
+            navigate("/history")
+          }
         >
           Back to History
         </button>
@@ -436,17 +509,23 @@ function Results() {
   // Handles a completed inspection that has no result object.
   if (!inspectionResults) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="results-message">
-          No inspection results are available because the
-          analysis did not return result data.
+          No inspection results are available
+          because the analysis did not return
+          result data.
         </p>
 
         <button
           type="button"
-          onClick={() => navigate("/history")}
+          onClick={() =>
+            navigate("/history")
+          }
         >
           Back to History
         </button>
@@ -461,19 +540,21 @@ function Results() {
     [];
 
   // Uses an empty array if bounding-box data is missing or invalid.
-  const detectedChanges = Array.isArray(boundingBoxes)
-    ? boundingBoxes
-    : [];
+  const detectedChanges =
+    Array.isArray(boundingBoxes)
+      ? boundingBoxes
+      : [];
 
   // Counts the number of detected areas.
-  const numberOfChanges = detectedChanges.length;
+  const numberOfChanges =
+    detectedChanges.length;
 
   // Determines whether at least one change was detected.
-  const changesDetected = numberOfChanges > 0;
+  const changesDetected =
+    numberOfChanges > 0;
 
   // Uses the local preview when Results is opened immediately
   // after Processing.
-  // Otherwise, loads the Before image path returned by the backend.
   const beforeImage =
     location.state?.beforePreview ||
     buildImageUrl(
@@ -485,7 +566,6 @@ function Results() {
 
   // Uses the local preview when Results is opened immediately
   // after Processing.
-  // Otherwise, loads the original After image from the backend.
   const afterImage =
     location.state?.afterPreview ||
     buildImageUrl(
@@ -496,23 +576,28 @@ function Results() {
     );
 
   // Loads the server-generated processed image.
-  // This image already contains the detected-change markings.
-  const processedImage = buildImageUrl(
-    inspection.images?.processed ||
-      inspection.processed_image_path ||
-      inspection.processedImagePath
-  );
+  const processedImage =
+    buildImageUrl(
+      inspection.images?.processed ||
+        inspection.processed_image_path ||
+        inspection.processedImagePath
+    );
 
   // Prefers the processed image generated by the server.
-  // For older inspections without a processed image,
-  // the original After image is used as a fallback.
-  const resultImage = processedImage || afterImage;
+  const resultImage =
+    processedImage || afterImage;
 
   // Displays a clear message only when neither local previews
   // nor backend image paths are available.
-  if (!beforeImage || !resultImage) {
+  if (
+    !beforeImage ||
+    !resultImage
+  ) {
     return (
-      <div className="results-page">
+      <div
+        className="results-page"
+        data-testid="results-screen"
+      >
         <h1>Results Screen</h1>
 
         <p className="results-message">
@@ -521,7 +606,9 @@ function Results() {
 
         <button
           type="button"
-          onClick={() => navigate("/history")}
+          onClick={() =>
+            navigate("/history")
+          }
         >
           Back to History
         </button>
@@ -533,29 +620,52 @@ function Results() {
   // This keeps each box aligned when the image changes size.
   const getBoxStyle = (box) => {
     // Hides the box until the original image dimensions are known.
-    if (!afterImageSize.width || !afterImageSize.height) {
+    if (
+      !afterImageSize.width ||
+      !afterImageSize.height
+    ) {
       return {
         display: "none",
       };
     }
 
     // Supports both width/height naming styles.
-    const boxX = Number(box?.x) || 0;
-    const boxY = Number(box?.y) || 0;
-    const boxWidth =
-      Number(box?.w ?? box?.width) || 0;
-    const boxHeight =
-      Number(box?.h ?? box?.height) || 0;
+    const boxX =
+      Number(box?.x) || 0;
 
-    // Calculates the relative box position and size.
+    const boxY =
+      Number(box?.y) || 0;
+
+    const boxWidth =
+      Number(
+        box?.w ?? box?.width
+      ) || 0;
+
+    const boxHeight =
+      Number(
+        box?.h ?? box?.height
+      ) || 0;
+
     return {
-      left: `${(boxX / afterImageSize.width) * 100}%`,
-      top: `${(boxY / afterImageSize.height) * 100}%`,
+      left: `${
+        (boxX /
+          afterImageSize.width) *
+        100
+      }%`,
+      top: `${
+        (boxY /
+          afterImageSize.height) *
+        100
+      }%`,
       width: `${
-        (boxWidth / afterImageSize.width) * 100
+        (boxWidth /
+          afterImageSize.width) *
+        100
       }%`,
       height: `${
-        (boxHeight / afterImageSize.height) * 100
+        (boxHeight /
+          afterImageSize.height) *
+        100
       }%`,
     };
   };
@@ -567,7 +677,10 @@ function Results() {
     "under_review";
 
   return (
-    <div className="results-page">
+    <div
+      className="results-page"
+      data-testid="results-screen"
+    >
       {/* Page title */}
       <h1>Results Screen</h1>
 
@@ -605,13 +718,20 @@ function Results() {
         <div className="case-classification-controls">
           <select
             id="case-status"
-            value={selectedCaseStatus}
+            data-testid="case-status-select"
+            value={
+              selectedCaseStatus
+            }
             onChange={(event) => {
-              setSelectedCaseStatus(event.target.value);
+              setSelectedCaseStatus(
+                event.target.value
+              );
               setCaseStatusSuccess("");
               setCaseStatusError("");
             }}
-            disabled={caseStatusLoading}
+            disabled={
+              caseStatusLoading
+            }
           >
             <option value="under_review">
               Under Review
@@ -627,14 +747,19 @@ function Results() {
           </select>
 
           <button
+            data-testid="update-status-button"
             type="button"
             className="update-case-status-button"
-            onClick={handleUpdateCaseStatus}
+            onClick={
+              handleUpdateCaseStatus
+            }
             disabled={
               caseStatusLoading ||
               (
-                selectedCaseStatus === currentCaseStatus &&
-                caseNote === savedCaseNote
+                selectedCaseStatus ===
+                  currentCaseStatus &&
+                caseNote ===
+                  savedCaseNote
               )
             }
           >
@@ -644,7 +769,7 @@ function Results() {
           </button>
         </div>
 
-                <label
+        <label
           htmlFor="case-note"
           style={{
             marginTop: "16px",
@@ -656,9 +781,12 @@ function Results() {
 
         <textarea
           id="case-note"
+          data-testid="case-note"
           value={caseNote}
           onChange={(event) => {
-            setCaseNote(event.target.value);
+            setCaseNote(
+              event.target.value
+            );
             setCaseStatusSuccess("");
             setCaseStatusError("");
           }}
@@ -676,7 +804,9 @@ function Results() {
         <p className="current-case-status">
           Current status:{" "}
           <strong>
-            {getCaseStatusLabel(currentCaseStatus)}
+            {getCaseStatusLabel(
+              currentCaseStatus
+            )}
           </strong>
         </p>
 
@@ -702,9 +832,12 @@ function Results() {
       {/* PDF report actions */}
       <div className="report-actions">
         <button
+          data-testid="download-report-button"
           type="button"
           className="download-report-button"
-          onClick={handleDownloadReport}
+          onClick={
+            handleDownloadReport
+          }
           disabled={reportLoading}
         >
           <FaDownload />
@@ -717,7 +850,10 @@ function Results() {
         </button>
 
         {reportError && (
-          <p className="report-error" role="alert">
+          <p
+            className="report-error"
+            role="alert"
+          >
             {reportError}
           </p>
         )}
@@ -726,9 +862,12 @@ function Results() {
       {/* Displays the Before and After images side by side */}
       <div className="images-grid">
         <div className="image-section">
-          <h3>Before Image (Old State)</h3>
+          <h3>
+            Before Image (Old State)
+          </h3>
 
           <img
+            data-testid="results-before-image"
             className="result-image"
             src={beforeImage}
             alt="Before inspection"
@@ -742,9 +881,12 @@ function Results() {
               : "After Image (New State)"}
           </h3>
 
-          {/* Relative wrapper used to display the result image */}
-          <div className="after-image-wrapper">
+          <div
+            className="after-image-wrapper"
+            data-testid="results-overlay"
+          >
             <img
+              data-testid="results-processed-image"
               className="result-image"
               src={resultImage}
               alt={
@@ -753,38 +895,42 @@ function Results() {
                   : "After inspection"
               }
               onLoad={(event) => {
-                // Stores the displayed image's original dimensions.
-                // These dimensions are only needed for the fallback
-                // that draws bounding boxes in the browser.
                 setAfterImageSize({
                   width:
-                    event.currentTarget.naturalWidth,
+                    event.currentTarget
+                      .naturalWidth,
                   height:
-                    event.currentTarget.naturalHeight,
+                    event.currentTarget
+                      .naturalHeight,
                 });
               }}
             />
 
             {/*
-              The processed image already contains the change markings.
-              Bounding boxes are drawn only for older inspections
-              that do not have a processed image.
+              The processed image already contains
+              the change markings.
+              Bounding boxes are drawn only for older
+              inspections without a processed image.
             */}
             {!processedImage &&
-              detectedChanges.map((box, index) => (
-                <div
-                  key={`${box?.x}-${box?.y}-${index}`}
-                  className="red-box"
-                  style={getBoxStyle(box)}
-                  aria-label={`Detected change ${
-                    index + 1
-                  }`}
-                >
-                  <span className="box-number">
-                    {index + 1}
-                  </span>
-                </div>
-              ))}
+              detectedChanges.map(
+                (box, index) => (
+                  <div
+                    key={`${box?.x}-${box?.y}-${index}`}
+                    className="red-box"
+                    style={
+                      getBoxStyle(box)
+                    }
+                    aria-label={`Detected change ${
+                      index + 1
+                    }`}
+                  >
+                    <span className="box-number">
+                      {index + 1}
+                    </span>
+                  </div>
+                )
+              )}
           </div>
         </div>
       </div>
@@ -793,15 +939,16 @@ function Results() {
         Displays the browser-overlay legend only when the page
         uses the original After image as a fallback.
       */}
-      {changesDetected && !processedImage && (
-        <div className="legend">
-          <span className="legend-box"></span>
+      {changesDetected &&
+        !processedImage && (
+          <div className="legend">
+            <span className="legend-box" />
 
-          <span>
-            Detected changes are highlighted in red.
-          </span>
-        </div>
-      )}
+            <span>
+              Detected changes are highlighted in red.
+            </span>
+          </div>
+        )}
     </div>
   );
 }

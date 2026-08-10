@@ -15,7 +15,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Handle login request
+  // Handle login request.
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -49,7 +49,9 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>Municipal Illegal Construction Detection System</h1>
+        <h1>
+          Municipal Illegal Construction Detection System
+        </h1>
 
         <p className="subtitle">
           AI-powered detection and inspection platform
@@ -60,10 +62,13 @@ function Login() {
             <FaEnvelope className="input-icon" />
 
             <input
+              data-testid="login-email"
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
             />
           </div>
 
@@ -71,10 +76,13 @@ function Login() {
             <FaLock className="input-icon" />
 
             <input
+              data-testid="login-password"
               type="password"
               placeholder="Enter your password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
             />
           </div>
 
@@ -84,7 +92,11 @@ function Login() {
             </p>
           )}
 
-          <button type="submit" disabled={loading}>
+          <button
+            data-testid="login-submit"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>

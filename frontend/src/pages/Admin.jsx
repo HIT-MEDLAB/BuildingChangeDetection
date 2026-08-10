@@ -267,7 +267,10 @@ function Admin() {
   // Display a loading message while the users are being fetched.
   if (loading) {
     return (
-      <div className="admin-page">
+      <div
+        className="admin-page"
+        data-testid="admin-screen"
+      >
         <h1>User Management</h1>
 
         <p className="admin-message">
@@ -278,7 +281,10 @@ function Admin() {
   }
 
   return (
-    <div className="admin-page">
+    <div
+      className="admin-page"
+      data-testid="admin-screen"
+    >
       <h1>User Management</h1>
 
       <p className="admin-subtitle">
@@ -310,6 +316,7 @@ function Admin() {
 
             <input
               id="admin-user-name"
+              data-testid="admin-name-input"
               name="name"
               type="text"
               value={newUser.name}
@@ -326,6 +333,7 @@ function Admin() {
 
             <input
               id="admin-user-email"
+              data-testid="admin-email-input"
               name="email"
               type="email"
               value={newUser.email}
@@ -342,6 +350,7 @@ function Admin() {
 
             <input
               id="admin-user-password"
+              data-testid="admin-password-input"
               name="password"
               type="password"
               value={newUser.password}
@@ -358,6 +367,7 @@ function Admin() {
 
             <select
               id="admin-user-role"
+              data-testid="admin-role-select"
               name="role"
               value={newUser.role}
               onChange={handleNewUserChange}
@@ -375,6 +385,7 @@ function Admin() {
 
           <button
             type="submit"
+            data-testid="create-user-button"
             className="admin-create-button"
             disabled={creatingUser}
           >
@@ -466,7 +477,9 @@ function Admin() {
                         </div>
                       </td>
 
-                      <td>{systemUser.email}</td>
+                      <td>
+                        {systemUser.email}
+                      </td>
 
                       <td>
                         <select
