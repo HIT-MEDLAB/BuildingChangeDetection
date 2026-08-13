@@ -294,7 +294,7 @@ Recommended selectors:
 
 ### Login
 
-- `login-email`
+- `login-username`
 - `login-password`
 - `login-submit`
 

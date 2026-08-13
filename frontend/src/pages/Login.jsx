@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaEnvelope, FaLock } from "react-icons/fa";
+import { FaUser, FaLock } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import "./Login.css";
@@ -9,9 +9,11 @@ function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
-  const [email, setEmail] = useState("");
+  // Username and password entered by the user.
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  // Login request state.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,7 +21,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    // Both fields are required.
+    if (!username || !password) {
       setError("Please fill in all fields.");
       return;
     }
@@ -28,13 +31,16 @@ function Login() {
     setError("");
 
     try {
+      // Send username and password to the backend.
       const response = await api.post("/api/auth/login", {
-        email,
+        username,
         password,
       });
 
+      // Save authentication information in the AuthContext.
       login(response.data.token, response.data.user);
 
+      // Redirect the user to the upload page after successful login.
       navigate("/upload");
     } catch (err) {
       setError(
@@ -59,20 +65,22 @@ function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <FaEnvelope className="input-icon" />
+            {/* Username icon */}
+            <FaUser className="input-icon" />
 
             <input
-              data-testid="login-email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
+              data-testid="login-username"
+              type="text"
+              placeholder="Enter your username"
+              value={username}
               onChange={(e) =>
-                setEmail(e.target.value)
+                setUsername(e.target.value)
               }
             />
           </div>
 
           <div className="input-group">
+            {/* Password icon */}
             <FaLock className="input-icon" />
 
             <input
