@@ -17,7 +17,7 @@ router.use(authenticate, requireAdmin);
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, email, name, role, is_active, created_at
+      `SELECT id, username, email, name, role, is_active, created_at
        FROM users
        ORDER BY created_at DESC`
     );
@@ -25,6 +25,7 @@ router.get('/users', async (req, res) => {
     res.status(200).json({
       users: result.rows.map((u) => ({
         id: u.id,
+        username: u.username,
         email: u.email,
         name: u.name,
         role: u.role,
@@ -40,8 +41,12 @@ router.get('/users', async (req, res) => {
 
 // POST /api/admin/users
 // Create a new user account (inspector or admin).
+// REQ-AUTH-01: accounts log in by username. The admin form doesn't collect
+// one explicitly yet, so if the caller doesn't send `username`, derive a
+// default from the email's local part - keeps existing frontend callers
+// working while still satisfying "every account has a username".
 router.post('/users', async (req, res) => {
-  const { email, password, name, role = 'inspector' } = req.body;
+  const { email, username, password, name, role = 'inspector' } = req.body;
 
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'email, password and name are required' });
@@ -51,14 +56,16 @@ router.post('/users', async (req, res) => {
     return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
   }
 
+  const finalUsername = (username && username.trim()) || email.split('@')[0];
+
   try {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, name, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, name, role, is_active, created_at`,
-      [email, passwordHash, name, role]
+      `INSERT INTO users (email, username, password_hash, name, role)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, username, email, name, role, is_active, created_at`,
+      [email, finalUsername, passwordHash, name, role]
     );
 
     const user = result.rows[0];
@@ -69,6 +76,7 @@ router.post('/users', async (req, res) => {
 
     res.status(201).json({
       id: user.id,
+      username: user.username,
       email: user.email,
       name: user.name,
       role: user.role,
@@ -77,8 +85,13 @@ router.post('/users', async (req, res) => {
     });
   } catch (err) {
     if (err.code === '23505') {
-      // unique_violation on users.email
-      return res.status(409).json({ error: 'A user with this email already exists' });
+      // unique_violation - either users.email or users.username_unique
+      const onUsername = err.constraint === 'users_username_unique';
+      return res.status(409).json({
+        error: onUsername
+          ? `The username "${finalUsername}" is already taken`
+          : 'A user with this email already exists'
+      });
     }
     logger.error('Create user error', { message: err.message, stack: err.stack, adminId: req.user.userId });
     res.status(500).json({ error: 'Internal server error' });
@@ -131,7 +144,7 @@ router.patch('/users/:id', async (req, res) => {
 
     const result = await pool.query(
       `UPDATE users SET ${fields.join(', ')} WHERE id = $${i}
-       RETURNING id, email, name, role, is_active, created_at`,
+       RETURNING id, username, email, name, role, is_active, created_at`,
       values
     );
 
@@ -143,6 +156,7 @@ router.patch('/users/:id', async (req, res) => {
 
     res.status(200).json({
       id: user.id,
+      username: user.username,
       email: user.email,
       name: user.name,
       role: user.role,

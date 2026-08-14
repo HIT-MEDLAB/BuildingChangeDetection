@@ -10,13 +10,15 @@ All endpoints return JSON. Authentication is via JWT Bearer token in the `Author
 
 ### POST /api/auth/login
 
-Authenticate a user and receive a JWT token.
+Authenticate a user and receive a JWT token. Per REQ-AUTH-01, login is by
+**username**, not email (email is still stored on the account as a contact
+field).
 
 **Request Body:**
 
 ```json
 {
-  "email": "inspector@example.com",
+  "username": "inspector1",
   "password": "string"
 }
 ```
@@ -28,6 +30,7 @@ Authenticate a user and receive a JWT token.
   "token": "eyJhbGciOiJIUzI1NiIs...",
   "user": {
     "id": 1,
+    "username": "inspector1",
     "email": "inspector@example.com",
     "name": "Inspector Name"
   }
@@ -36,10 +39,10 @@ Authenticate a user and receive a JWT token.
 
 **Error Responses:**
 
-| Status | Body                                          | When                    |
-|--------|-----------------------------------------------|-------------------------|
-| 400    | `{ "error": "Email and password are required" }` | Missing fields       |
-| 401    | `{ "error": "Invalid credentials" }`          | Wrong email or password |
+| Status | Body                                          | When                       |
+|--------|-----------------------------------------------|----------------------------|
+| 400    | `{ "error": "Username and password are required" }` | Missing fields      |
+| 401    | `{ "error": "Invalid credentials" }`          | Wrong username or password |
 
 ---
 
@@ -305,7 +308,7 @@ Lists all users.
 ```json
 {
   "users": [
-    { "id": 1, "email": "yair@medlab.hit.ac.il", "name": "Yair Katsav", "role": "inspector", "isActive": true, "createdAt": "2026-07-01T00:00:00Z" }
+    { "id": 1, "username": "yair", "email": "yair@medlab.hit.ac.il", "name": "Yair Katsav", "role": "inspector", "isActive": true, "createdAt": "2026-07-01T00:00:00Z" }
   ]
 }
 ```
@@ -314,9 +317,9 @@ Lists all users.
 
 Creates a new user account.
 
-**Request Body:** `{ "email": "...", "password": "...", "name": "...", "role": "inspector" }` (`role` optional, defaults to `inspector`).
+**Request Body:** `{ "email": "...", "username": "...", "password": "...", "name": "...", "role": "inspector" }` (`role` optional, defaults to `inspector`; `username` optional — defaults to the email's local part if omitted).
 
-**Success Response (201):** the created user object (no password hash). **Errors:** `400` missing fields / invalid role, `409` email already exists.
+**Success Response (201):** the created user object (no password hash). **Errors:** `400` missing fields / invalid role, `409` email or username already exists.
 
 ### PATCH /api/admin/users/:id
 

@@ -20,6 +20,7 @@ services:
       - ./database/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
       - ./database/002_add_roles_and_status.sql:/docker-entrypoint-initdb.d/002_add_roles_and_status.sql
       - ./database/003_add_processed_image.sql:/docker-entrypoint-initdb.d/003_add_processed_image.sql
+      - ./database/004_add_username.sql:/docker-entrypoint-initdb.d/004_add_username.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bcd_user}"]
       interval: 5s

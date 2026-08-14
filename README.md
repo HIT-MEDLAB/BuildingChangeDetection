@@ -48,8 +48,9 @@ docker compose up -d         # Starts PostgreSQL + Adminer, applies all migratio
 Adminer (DB browser) will be available at `http://localhost:8080`.
 
 If you prefer to install PostgreSQL directly or use a cloud instance, create a database manually
-and run all three migration files against it, in order: `database/001_initial_schema.sql`,
-`database/002_add_roles_and_status.sql`, `database/003_add_processed_image.sql`.
+and run all four migration files against it, in order: `database/001_initial_schema.sql`,
+`database/002_add_roles_and_status.sql`, `database/003_add_processed_image.sql`,
+`database/004_add_username.sql`.
 
 ### 2. Start the backend
 
@@ -58,8 +59,8 @@ cd backend
 cp .env.example .env         # Edit if needed — must point at the database from step 1
 npm install
 node seed.js                 # Creates default login users (no self-registration endpoint exists):
-                              #   inspector — yair@medlab.hit.ac.il / password123
-                              #   admin     — admin@medlab.hit.ac.il / admin123
+                              #   inspector — username: yair  / password123
+                              #   admin     — username: admin / admin123
 npm run dev                  # Runs on http://localhost:3000
 ```
 
@@ -104,7 +105,7 @@ BuildingChangeDetection/
 │   ├── seed.js         # Creates default inspector/admin login users
 │   └── ...
 ├── ml-service/         # FastAPI ML inference service
-├── database/           # SQL migrations (001-003, applied via docker-compose)
+├── database/           # SQL migrations (001-004, applied via docker-compose)
 ├── docs/               # Architecture docs, API spec
 └── docker-compose.yml  # Local development infrastructure
 ```
