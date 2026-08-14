@@ -1,0 +1,16 @@
+{
+  "name": "bcd-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end tests for the Municipal Illegal Construction Detection System, driving a real browser through the full inspection flow.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

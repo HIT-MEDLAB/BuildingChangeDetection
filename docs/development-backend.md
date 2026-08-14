@@ -1,8 +1,9 @@
 # Development Document — Backend Sections
 
-*Drafted for the ~8-page development document (Week of Jul 27 – Aug 2, 2026). Covers architecture,
-data model, API, security, ML integration, logging, and measured performance — the backend/ML
-portion of the joint document with Neta's frontend sections.*
+*Backend/ML portion of the joint development document with Neta's frontend sections. Drafted the
+week of Jul 27 – Aug 2, 2026; completed during the delivery phase (Aug 5–12, 2026) with error
+handling, testing, and future-work sections added. Covers architecture, data model, API, security,
+ML integration, error handling, logging, testing, measured performance, and known limitations.*
 
 ## Architecture
 
@@ -157,6 +158,85 @@ User actions logged via `logger.logUserAction(action, meta)`: `login`, `upload`,
 `report_download`, `status_change`, `delete_inspection`, `export`, `admin_create_user`,
 `admin_update_user`. A redaction step strips `password`, `token`, and similar keys from any log
 line before it's written — verified directly against the log file, not just by inspection.
+
+## Error Handling
+
+All errors converge on one centralized Express error-handling middleware
+(`backend/src/middleware/errorHandler.js`, registered last in `app.js`). Any error thrown or
+passed to `next(err)` from a route ends up there: it's logged via winston with full context
+(message, stack, method, path, `userId`, status code) and answered with `{ error: message }` at
+`err.statusCode || 500`. Nothing crashes the process — an unhandled route error becomes a `500`
+with a logged stack trace, not a dropped connection.
+
+By layer:
+
+- **Validation (400)** — missing required fields (`Both images are required`), an invalid
+  `caseStatus` value, malformed request bodies.
+- **Authentication (401)** — missing or invalid JWT (`authenticate` middleware, runs before every
+  protected route).
+- **Authorization (403)** — `requireAdmin` for `/api/admin/*`; per-inspection ownership checks for
+  read/write/report/export.
+- **Not found (404)** — inspection ID doesn't exist, or (for ownership-checked routes) exists but
+  isn't visible to the requester.
+- **Upload-specific (multer)** — oversized (`LIMIT_FILE_SIZE`) and disallowed-type files are both
+  caught in the upload middleware itself and answered with `400` and a specific message
+  (`File too large. Maximum size is 10MB.` / `Invalid file type...`).
+- **ML-service-specific (422 / 502)** — a `422` from the ML service (corrupt image, mismatched
+  camera angles) is relayed to the client with its original `detail` message; a timeout,
+  unreachable service, or unexpected response shape marks the inspection `failed` and returns
+  `502`, instead of hanging the request past the 8-second budget (see ML Integration above).
+
+**Known inconsistency (not yet fixed, low risk):** the frontend's upload error handling
+(`Upload.jsx`) branches on `err.response?.status === 413` / `=== 415` to show a tailored message
+("images too large" / "unsupported file"), but the backend currently answers both cases with
+`400`, not `413`/`415`. In practice this means an oversized or wrong-type file still fails
+correctly and safely — the user just sees the generic fallback copy ("We could not upload the
+images...") instead of the specific one, since the two status codes never match. Worth a one-line
+fix (either send the more specific status codes, or have the frontend read the message text
+instead of branching on status) — flagged here rather than silently left for someone to rediscover
+via a confusing bug report.
+
+## Testing
+
+- **Backend** — Jest + Supertest, 47 test cases across 5 files (`auth`, `admin`, `inspections`,
+  `report`, `app`). The database is mocked (`jest.mock('../config/db')`), so the suite runs without
+  a live Postgres and stays fast enough to run on every save. **Confirmed: 47/47 passing** (local
+  run, Aug 2026).
+- **Frontend** — Vitest + Testing Library, 7 files. **Confirmed: 63/63 passing on this branch**
+  (local run, Aug 2026). Note this branch is not `dev` — **66 test cases exist on `dev`**
+  (`Upload.test.jsx` has 3 more there), and that is the count that matters for the item below.
+- **E2E** — new this week (`e2e/`), one Playwright scenario driving a real browser through the
+  full flow: log in → upload a before/after pair → wait for processing → verify the results overlay
+  → download the PDF report → confirm the case appears in history. Passing locally end-to-end
+  (~19s) against a freshly started stack.
+
+**Open action item, not yet resolved:** per the latest supervisor review, 20 of the 66 frontend
+tests fail when run against the fully merged `dev` branch, even though they pass on individual
+feature branches. This is being tracked and fixed separately (details in Neta's testing notes) —
+the point worth documenting here is *why* it happened: tests were being verified per-branch, not
+after merging, so a conflict between two independently-green branches went unnoticed until they
+were combined. The fix going forward (already adopted): merge locally and run both suites again
+before treating any branch as done, not just trust a green run on an isolated feature branch.
+
+## Future Work / Known Limitations
+
+Stating these plainly rather than glossing over them:
+
+- **Real ML model.** The `/predict` endpoint is a mock (see ML Integration) — it returns
+  proportionally-placed bounding boxes and a fixed confidence score, not the output of a trained
+  model. Model training/accuracy was explicitly out of scope for this project (PRD section 7).
+  Integrating a real model (e.g. Tiny-CD, referenced in `ml-service/app.py`) is the single largest
+  piece of deferred work; the backend's contract with the ML service (`POST /predict` →
+  `{changes_detected, bounding_boxes, confidence}`) is already designed so that swapping the mock
+  for a real model shouldn't require backend changes, only a new implementation behind the same
+  endpoint.
+- **Instant token revocation.** Role/active-status changes apply on the user's *next* login, not
+  immediately (see Security) — acceptable at this project's scale, but would need a revocation list
+  or short-lived tokens for a deployment requiring instant enforcement.
+- **Production hardening.** Stack traces are not yet stripped from error responses in every path
+  (tracked as a `TODO` in `errorHandler.js`); there's no rate limiting; there's no production
+  deployment target (out of scope per the PRD — this is a local/demo system).
+- **Status-code / message-copy mismatch on upload errors** — see Error Handling above.
 
 ## Measured Performance (against the running system, not estimated)
 
