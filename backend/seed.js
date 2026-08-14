@@ -14,23 +14,25 @@ const pool = new Pool({
 
 async function seedUser() {
     try{
+        // REQ-AUTH-01: login is by username, not email. email is kept on the
+        // account as a contact field only.
         const passwordHash = await bcrypt.hash('password123', 10);
         await pool.query(
-            `INSERT INTO users (email, password_hash, name, role)
-             VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
-             ['yair@medlab.hit.ac.il', passwordHash, 'Yair Katsav', 'inspector']
+            `INSERT INTO users (username, email, password_hash, name, role)
+             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
+             ['yair', 'yair@medlab.hit.ac.il', passwordHash, 'Yair Katsav', 'inspector']
         );
-        console.log ('Test user created: email: yair@medlab.hit.ac.il, password: password123 (role: inspector)');
+        console.log ('Test user created: username: yair, password: password123 (role: inspector)');
 
         // US-6: seed one admin so there's always a way into /api/admin without
         // manual SQL after a fresh docker-compose up.
         const adminPasswordHash = await bcrypt.hash('admin123', 10);
         await pool.query(
-            `INSERT INTO users (email, password_hash, name, role)
-             VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
-             ['admin@medlab.hit.ac.il', adminPasswordHash, 'System Admin', 'admin']
+            `INSERT INTO users (username, email, password_hash, name, role)
+             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
+             ['admin', 'admin@medlab.hit.ac.il', adminPasswordHash, 'System Admin', 'admin']
         );
-        console.log ('Admin user created: email: admin@medlab.hit.ac.il, password: admin123 (role: admin)');
+        console.log ('Admin user created: username: admin, password: admin123 (role: admin)');
     } catch (err){
         console.error('Error seeding user:', err);
     } finally{

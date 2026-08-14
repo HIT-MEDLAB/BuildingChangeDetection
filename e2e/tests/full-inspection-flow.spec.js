@@ -2,8 +2,9 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 
 // Seeded by backend/seed.js (idempotent - see scripts/start-stack.sh).
+// REQ-AUTH-01: login is by username, not email.
 const TEST_USER = {
-  email: 'yair@medlab.hit.ac.il',
+  username: 'yair',
   password: 'password123',
 };
 
@@ -30,7 +31,7 @@ const AFTER_IMAGE = path.join(__dirname, '..', 'fixtures', 'after.png');
 test('inspector can log in, upload, review results, download the report, and find the case in history', async ({ page }) => {
   // ---- 1. Log in ----
   await page.goto('/login');
-  await page.getByPlaceholder('Enter your email').fill(TEST_USER.email);
+  await page.getByPlaceholder('Enter your username').fill(TEST_USER.username);
   await page.getByPlaceholder('Enter your password').fill(TEST_USER.password);
   await page.getByRole('button', { name: 'Login' }).click();
   await expect(page).toHaveURL(/\/upload$/);
