@@ -47,18 +47,18 @@ describe("Login component", () => {
   });
 
   // Verify that the user can type into both input fields
-  test("allows the user to type email and password", async () => {
+  test("allows the user to type username and password", async () => {
     const user = userEvent.setup();
 
     renderLogin();
 
-    const emailInput = screen.getByPlaceholderText("Enter your email");
+    const usernameInput = screen.getByPlaceholderText("Enter your username");
     const passwordInput = screen.getByPlaceholderText("Enter your password");
 
-    await user.type(emailInput, "yair@medlab.hit.ac.il");
+    await user.type(usernameInput, "yair");
     await user.type(passwordInput, "password123");
 
-    expect(emailInput).toHaveValue("yair@medlab.hit.ac.il");
+    expect(usernameInput).toHaveValue("yair");
     expect(passwordInput).toHaveValue("password123");
   });
 });
