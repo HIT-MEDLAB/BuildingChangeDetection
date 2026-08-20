@@ -19,7 +19,9 @@ const AFTER_IMAGE = path.join(__dirname, '..', 'fixtures', 'after.png');
  * The ML service's mock /predict endpoint always returns
  * changes_detected: true with exactly 2 bounding boxes (see ml-service/app.py)
  * and a fixed confidence, so the assertions below are deterministic - this
- * is not a flaky-by-nature test.
+ * is not a flaky-by-nature test. The backend then bakes those boxes into a
+ * processed image server-side (REQ-CORE-03), which is what Results.jsx
+ * actually displays.
  *
  * NOTE for Neta: the selectors below use the visible text / placeholders /
  * roles that already exist in Login.jsx, Upload.jsx, Results.jsx and
@@ -37,14 +39,23 @@ test('inspector can log in, upload, review results, download the report, and fin
   await expect(page).toHaveURL(/\/upload$/);
 
   // ---- 2. Upload a before/after image pair ----
+  // Upload.jsx is a step wizard - only one file input exists in the DOM at a
+  // time (Before on step 1, After on step 2), not both at once.
   await expect(page.getByRole('heading', { name: 'Upload Inspection Images' })).toBeVisible();
 
-  const fileInputs = page.locator('input[type="file"]');
-  await expect(fileInputs).toHaveCount(2);
-  await fileInputs.nth(0).setInputFiles(BEFORE_IMAGE); // "1. Upload Before Image"
-  await fileInputs.nth(1).setInputFiles(AFTER_IMAGE);  // "2. Upload After Image"
+  // Step 1: Before image.
+  await expect(page.getByRole('heading', { name: '1. Upload Before Image' })).toBeVisible();
+  await page.getByTestId('upload-before-input').setInputFiles(BEFORE_IMAGE);
 
-  const submitButton = page.getByRole('button', { name: 'Submit Images' });
+  const nextButton = page.getByTestId('upload-before-next');
+  await expect(nextButton).toBeEnabled();
+  await nextButton.click();
+
+  // Step 2: After image.
+  await expect(page.getByRole('heading', { name: '2. Upload After Image' })).toBeVisible();
+  await page.getByTestId('upload-after-input').setInputFiles(AFTER_IMAGE);
+
+  const submitButton = page.getByTestId('upload-submit');
   await expect(submitButton).toBeEnabled();
   await submitButton.click();
 
@@ -60,9 +71,12 @@ test('inspector can log in, upload, review results, download the report, and fin
     page.getByText('Suspicious areas are highlighted in red on the after image.')
   ).toBeVisible();
 
-  // The two mock bounding boxes should render as overlay rectangles.
-  const detectedBoxes = page.locator('.red-box');
-  await expect(detectedBoxes).toHaveCount(2);
+  // The backend generates a processed image with the change boxes already
+  // drawn on it server-side (REQ-CORE-03), so Results.jsx shows that image
+  // directly rather than drawing its own ".red-box" overlay divs - those are
+  // a fallback only for older inspections that predate a processed image.
+  await expect(page.getByRole('heading', { name: 'Processed Result Image' })).toBeVisible();
+  await expect(page.getByTestId('results-processed-image')).toHaveAttribute('src', /.+/);
 
   // ---- 5. Download the PDF report ----
   const [download] = await Promise.all([
