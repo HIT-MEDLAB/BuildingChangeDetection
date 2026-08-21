@@ -62,7 +62,9 @@ Full endpoint-by-endpoint reference: `docs/api-spec.md`. Summary by area:
 ## Security
 
 - **Authentication**: JWT (`jsonwebtoken`), 8h expiry, verified on every request via the
-  `authenticate` middleware (`Authorization: Bearer <token>`).
+  `authenticate` middleware (`Authorization: Bearer <token>`). Login is by **username**, not email
+  (REQ-AUTH-01, migration `004_add_username.sql`) — email is retained on the account as a contact
+  field but is no longer used to authenticate.
 - **Password storage**: bcrypt (cost factor 10), never logged (see Logging below).
 - **Authorization**: role-based (`inspector` / `admin`) embedded in the JWT and enforced by
   `requireAdmin` middleware on `/api/admin/*`. Ownership checks (`inspection.user_id ===
@@ -202,21 +204,19 @@ via a confusing bug report.
   `report`, `app`). The database is mocked (`jest.mock('../config/db')`), so the suite runs without
   a live Postgres and stays fast enough to run on every save. **Confirmed: 47/47 passing** (local
   run, Aug 2026).
-- **Frontend** — Vitest + Testing Library, 7 files. **Confirmed: 63/63 passing on this branch**
-  (local run, Aug 2026). Note this branch is not `dev` — **66 test cases exist on `dev`**
-  (`Upload.test.jsx` has 3 more there), and that is the count that matters for the item below.
-- **E2E** — new this week (`e2e/`), one Playwright scenario driving a real browser through the
-  full flow: log in → upload a before/after pair → wait for processing → verify the results overlay
-  → download the PDF report → confirm the case appears in history. Passing locally end-to-end
-  (~19s) against a freshly started stack.
+- **Frontend** — Vitest + Testing Library, 7 files. **Confirmed: 66/66 passing on `dev`** (local
+  run, Aug 2026).
+- **E2E** — Playwright, one scenario driving a real browser through the full flow: log in →
+  upload a before/after pair → wait for processing → verify the results overlay → download the
+  PDF report → confirm the case appears in history. Passing locally end-to-end (~19s) against a
+  freshly started stack, on `dev` with the current username-based login.
 
-**Open action item, not yet resolved:** per the latest supervisor review, 20 of the 66 frontend
-tests fail when run against the fully merged `dev` branch, even though they pass on individual
-feature branches. This is being tracked and fixed separately (details in Neta's testing notes) —
-the point worth documenting here is *why* it happened: tests were being verified per-branch, not
-after merging, so a conflict between two independently-green branches went unnoticed until they
-were combined. The fix going forward (already adopted): merge locally and run both suites again
-before treating any branch as done, not just trust a green run on an isolated feature branch.
+**Resolved:** an earlier supervisor review found 20 of the 66 frontend tests failing when run
+against the fully merged `dev` branch, even though they passed on individual feature branches.
+Root cause was process, not code: tests were being verified per-branch, not after merging, so a
+conflict between two independently-green branches went unnoticed until they were combined. Fixed
+by merging locally and re-running both suites before treating any branch as done, rather than
+trusting a green run on an isolated feature branch. All 66/66 now pass on a clean `dev` checkout.
 
 ## Future Work / Known Limitations
 
@@ -242,9 +242,9 @@ Stating these plainly rather than glossing over them:
 
 | Requirement | Target | Measured | Method |
 |---|---|---|---|
-| NFR-PERF-01 (upload → result) | ≤ 8s | **0.24s** (happy path) | `curl -w "%{time_total}"` against a real upload |
+| NFR-PERF-01 (upload → result) | ≤ 8s | **~190ms** (steady-state, after warm-up) | `curl -w "%{time_total}"` against a real upload; one warm-up request run first, measured on the next — a cold start right after server boot is slower |
 | NFR-PERF-01 (ML timeout enforcement) | fail fast, not hang | **5.07s** (aborts, doesn't wait for a simulated 10s hang) | Manually induced a 10s delay in the mock ML service, confirmed the backend aborted at the configured 5s budget |
-| NFR-PERF-02 (report generation) | < 3s | **0.32s** | `curl -w "%{time_total}"` against `GET /api/report/:id`, including PDF generation and image embedding |
+| NFR-PERF-02 (report generation) | < 3s | **~50ms** (steady-state, after warm-up) | `curl -w "%{time_total}"` against `GET /api/report/:id`, including PDF generation and image embedding; same warm-up methodology as above |
 | Processed image generation (REQ-CORE-03) | within the 8s upload budget | **74ms** for a realistic 1920×1080 photo, 3 boxes | Direct timing around `generateProcessedImage()` with a generated 1920×1080 JPEG, run outside test mocks |
 
 All four numbers were measured against the actual running system or the real `sharp`/PDF
