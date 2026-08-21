@@ -1,18 +1,30 @@
 import { useContext } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FaLandmark,
   FaCloudUploadAlt,
   FaRegQuestionCircle,
   FaHistory,
   FaUsersCog,
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 import { AuthContext } from "../context/AuthContext";
 import "./Sidebar.css";
 
 function Sidebar() {
-  const { user } = useContext(AuthContext);
+  // Get the current user and logout function
+  // from the authentication context.
+  const { user, logout } = useContext(AuthContext);
+
+  // Used to redirect the user after logging out.
+  const navigate = useNavigate();
+
+  // Log the user out and return to the login screen.
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <aside className="sidebar">
@@ -47,6 +59,16 @@ function Sidebar() {
           <FaRegQuestionCircle />
           Help
         </NavLink>
+
+        {/* Log the current user out of the system */}
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={handleLogout}
+        >
+          <FaSignOutAlt />
+          Logout
+        </button>
       </nav>
     </aside>
   );
